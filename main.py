@@ -2,7 +2,6 @@ from flask import Flask, render_template
 
 app = Flask("__main__")
 
-# Структура сайта :
 
 # Главная страница (Вход, Оперативные операции, info)
 @app.route("/")

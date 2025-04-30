@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    {% block style %}
+    {% endblock %}
+    <style> 
+        /* Основные переменные (легко менять цвета) */
+        :root {
+            --main-color: #2c3e50;     /* Основной цвет */
+            --accent-color: #3498db;   /* Акцентный цвет */
+            --text-color: #ffffff;     /* Цвет текста */
+            --hover-color: #2980b9;    /* Цвет при наведении */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif; /* Можно поменять шрифт */
+        }
+
+        .header {
+            background: var(--main-color);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            color: var(--text-color);
+            font-size: 1.5rem;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        /* Если хотите добавить логотип вместо текста */
+        .logo img {
+            height: 40px; /* Высота логотипа */
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem; /* Расстояние между пунктами меню */
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 1rem;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--hover-color);
+        }
+
+        /* Мобильное меню (появляется на экранах меньше 768px) */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: var(--main-color);
+                padding: 1rem;
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .nav-links.active {
+                display: flex;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .header {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <nav class="nav-container">
+            <!-- Логотип - замените текст на изображение если нужно -->
+            <a href="/" class="logo">На главную</a>
+            
+            <!-- Основное меню -->
+            <ul class="nav-links">
+                <li><a href="/server">Консоль</a></li>
+                <li><a href="/server/players">Игроки</a></li>
+                <li><a href="/server/settings">Настройки</a></li>
+                <li><a href="/server/files">Файлы</a></li>
+                <li><a href="/server/sqltables">SQL таблицы</a></li>
+                <li><a href="/server/map">Карта</a></li>
+            </ul>
+
+            <!-- Кнопка мобильного меню -->
+            <button class="mobile-menu-btn" onclick="toggleMenu()">☰</button>
+        </nav>
+    </header>
+
+    <main class="content-wrapper">
+        {% block body %}{% endblock %}
+    </main>
+
+    <script>
+        function toggleMenu() {
+            const navLinks = document.querySelector('.nav-links');
+            navLinks.classList.toggle('active');
+        }
+    </script>
+</body>
+</html>

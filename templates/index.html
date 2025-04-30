@@ -1,13 +1,14 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Main page</title>
-</head>
-<body>
-    <h1>База страницы *base.html*</h1>
-    <h1>Авторизация</h1>
-    <h1>Информация</h1>
-</body>
-</html>
+{% extend 'body.html' %}
+
+
+{% block title %}
+Main page
+{% endblock %}
+
+
+
+{% block body %}
+<h3>Наследование от 'base' (Навигация)<h3>
+<h3>Авторизация<h3>
+<h3>Информация<h3>
+{% endblock %}

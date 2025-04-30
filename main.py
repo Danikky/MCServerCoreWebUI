@@ -15,7 +15,7 @@ def auth():
     return "/auth"
 
 # Управление (Консоль, Данные, Производительность, Игроки) (Fast data)
-@app.route("/server/")
+@app.route("/server")
 def server():
     return "/server"
 

@@ -9,51 +9,56 @@
 </head>
 <style>
     ul {list-style-type: none}
-</style>             
+</style>
 <body>
-    <div class="container">
-        <header class="d-flex justify-content-center py-3">
-            <ul class="nav nav-pills">
-                <li class="nav-item">
-                    <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}" {% if request.path == '/' %}aria-current="page"{% endif %}>
-                        На главную
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/server" class="nav-link {% if request.path == '/server' %}active{% endif %}" {% if request.path == '/server' %}aria-current="page"{% endif %}>
-                        Сервер
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/server/sqltables" class="nav-link {% if request.path == '/server/sqltables' %}active{% endif %}" {% if request.path == '/server/sqltables' %}aria-current="page"{% endif %}>
-                        База данных
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/server/settings" class="nav-link {% if request.path == '/server/settings' %}active{% endif %}" {% if request.path == '/server/settings' %}aria-current="page"{% endif %}>
-                        Настройки
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/server/map" class="nav-link {% if request.path == '/server/map' %}active{% endif %}" {% if request.path == '/server/map' %}aria-current="page"{% endif %}>
-                        Карта
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/server/players" class="nav-link {% if request.path == '/server/players' %}active{% endif %}" {% if request.path == '/server/players' %}aria-current="page"{% endif %}>
-                        Игроки
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/server/files" class="nav-link {% if request.path == '/server/files' %}active{% endif %}" {% if request.path == '/server/files' %}aria-current="page"{% endif %}>
-                        Файлы
-                    </a>
-                </li>
-            </ul>
-        </header>
-    </div>
+    <header class="d-flex justify-content-center py-3">
+        <ul class="nav nav-pills">
+            <li class="nav-item">
+                <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}" {% if request.path == '/' %}aria-current="page"{% endif %}>
+                    На главную
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/server" class="nav-link {% if request.path == '/server' %}active{% endif %}" {% if request.path == '/server' %}aria-current="page"{% endif %}>
+                    Сервер
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/server/players" class="nav-link {% if request.path == '/server/players' %}active{% endif %}" {% if request.path == '/server/players' %}aria-current="page"{% endif %}>
+                    Игроки
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/server/settings" class="nav-link {% if request.path == '/server/settings' %}active{% endif %}" {% if request.path == '/server/settings' %}aria-current="page"{% endif %}>
+                    Настройки
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/server/files" class="nav-link {% if request.path == '/server/files' %}active{% endif %}" {% if request.path == '/server/files' %}aria-current="page"{% endif %}>
+                    Файлы
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/server/sqltables" class="nav-link {% if request.path == '/server/sqltables' %}active{% endif %}" {% if request.path == '/server/sqltables' %}aria-current="page"{% endif %}>
+                    База данных
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/server/map" class="nav-link {% if request.path == '/server/map' %}active{% endif %}" {% if request.path == '/server/map' %}aria-current="page"{% endif %}>
+                    Карта
+                </a>
+            </li>
+        </ul>
+    </header>
     {% block body %}
     {% endblock %}
+
+    <div class="container">
+        <div class="background"></div>
+        <div class="text">
+            <h2>CodeCrazeUniverse<Sup>inc.</Sup></h2>
+        </div>
+    </div>
 </body>
 </html>
 

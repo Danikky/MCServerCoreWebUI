@@ -17,6 +17,7 @@ class User(UserMixin):
         self.id = user_id
         self.username = username
 
+# МЫ БУДЕМ ИСПОЛЬЗОВАТЬ SQLITE!!!!! НАХЕР ЭТОТ ALCEMISTRY!!!
 def init_db():
     conn = sqlite3.connect('users.db')
     c = conn.cursor()
@@ -31,7 +32,7 @@ init_db()
 # Временный скрипт для создания администратора
 conn = sqlite3.connect('users.db')
 c = conn.cursor()
-admin_password = generate_password_hash('123')
+admin_password = generate_password_hash('123') # пароль админа
 c.execute('INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)', 
          ('admin', admin_password))
 conn.commit()

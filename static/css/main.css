@@ -43,3 +43,19 @@ header {
     left: 0;
     z-index: 1;
 }
+
+.fixed-left {
+    position: fixed;
+    left: 20px;
+    top: 4%;
+    transform: translateY(-50%);
+    z-index: 1000;
+}
+
+.fixed-right {
+    position: fixed;
+    right: 20px;
+    top: 4%;
+    transform: translateY(-50%);
+    z-index: 1000;
+}

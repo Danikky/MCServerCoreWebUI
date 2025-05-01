@@ -7,6 +7,7 @@ Home
 {% block body %}
 <!-- <h2 class="text">Minecraft Server CodeCrazeUniverse<sup>inc.</sup></h2> -->
 {% if current_user.is_authenticated %}
+
 {% else %}
     <img class="background" src="{{ url_for('static', filename='/res/img1.png') }}" alt="minecraft(main-link)">
 {% endif %}

@@ -112,7 +112,7 @@ def server():
     return render_template("server.html")
 
 # Настройка сервера
-@app.route("/server/settings")
+@app.route("/server/settings", methods=['GET', 'POST'])
 @login_required
 def server_settings():
     return render_template("server_settings.html")

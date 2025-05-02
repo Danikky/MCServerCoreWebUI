@@ -3,5 +3,16 @@
 {% block title %}Настройки сервера{% endblock %}
 
 {% block body %}
-
+<div class="alert alert-info">
+    <h1>Настройки: </h1>
+    <form method="post">
+        {% for el in properties_data %}
+            <div class="alert alert-primary">
+                <h4 class="text-dark">{{el[0]}}</h4>
+                <input type="text" name="{{el[0]}}" id="value" class="form-control", placeholder={{el[1]}}><br>
+            </div>
+        {% endfor %}
+        <input type="submit" class="btn btn-success" value="сохранить">
+    </form>
+</div>
 {% endblock %}

@@ -93,7 +93,15 @@ def server():
 @app.route("/server/settings", methods=['GET', 'POST'])
 @login_required
 def server_settings():
-    return render_template("server_settings.html")
+    properties_data = db.get_properties_data()
+    new_values = []
+    for i in range(len(properties_data)):
+        new_value = request.form.get(properties_data[i][0])
+        if new_value not in [None, "null", ""]:
+            db.update_properties(properties_data[i][0], new_value)
+    else:
+        properties_data = db.get_properties_data()
+        return render_template("server_settings.html", properties_data=properties_data)
 
 # Управление файлами серрвера (редактирование/создание/удаление файлов, директорий)
 @app.route("/server/files")

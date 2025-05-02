@@ -17,9 +17,9 @@ players
                 <form method="post">
                     <input type="hidden" name="username" value={{el[1]}}>
                     {% if el[3] == 0 %}
-                        <button type="submit" class="btn btn-success" name="value" value="is_op1">Дать op</button>
+                        <button class="btn btn-success" name="value" value="is_op1">Дать op</button>
                     {% else %}
-                        <button type="submit" class="btn btn-secondary" name="value" value="is_op0">Забрать op</button>
+                        <button class="btn btn-secondary" name="value" value="is_op0">Забрать op</button>
                     {% endif%}
 
                     {% if el[4] == 0 %}

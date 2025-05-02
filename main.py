@@ -25,7 +25,6 @@ class User(UserMixin):
 
 db.init_db()
 
-# ЙОООООУ ГАААЙСС!!!!! ТУТ НЕ ПОНЯТНО НИЧЕРТА, НАДО  ВЕСЬ SQL ПЕРЕНЕСТИ В ДРУГОЙ СКРИПТ!!!!!!!! Я ЗАПУТАЛСЯ!!!
 db.firts_time_admin()
         
 @login_manager.user_loader
@@ -140,4 +139,4 @@ def server_map():
 
 # Для безопастного импорта файла(как библиотека) + run
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False) # ДЕБАГ ФАЛС ПОМЕЯТЬ НА TRUE!!!! При тестах

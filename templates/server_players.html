@@ -12,50 +12,49 @@ players
     {% for el in players_data %} <!--el проходиться по всем игрокам на сервере-->
         {% if el[2] == 1 %}
             <div class="alert alert-primary">  <!--el[1] это имя-->
-            
                 <h2>{{el[1]}}</h2> 
                 <p><b>| op:  {{el[3]}} | banned: {{el[4]}} | ip banned: {{el[5]}} | vip: {{el[6]}} | whitelist:  {{el[7]}} | blacklist: {{el[8]}} |</b></p>
                 <form method="post">
+                    <input type="hidden" name="username" value={{el[1]}}>
                     {% if el[3] == 0 %}
-                        <button type="submit" class="btn btn-success" name="is_op" value=1>Дать op</button>
+                        <button type="submit" class="btn btn-success" name="value" value="is_op1">Дать op</button>
                     {% else %}
-                        <button type="submit" class="btn btn-secondary" name="is_op" value=0>Забрать op</button>
+                        <button type="submit" class="btn btn-secondary" name="value" value="is_op0">Забрать op</button>
                     {% endif%}
 
                     {% if el[4] == 0 %}
-                        <button class="btn btn-danger">Забанить</button>
+                        <button class="btn btn-danger" name="value" value="is_banned1">Забанить</button>
                     {% else %}
-                        <button class="btn btn-danger">Разбанить</button>
+                        <button class="btn btn-danger" name="value" value="is_banned0">Разбанить</button>
                     {% endif%}
 
                     {% if el[2] == 1 %}
-                        <button class="btn btn-danger">Кикнуть</button>
+                        <button class="btn btn-danger" name="value" value="is_ online0">Кикнуть</button>
                     {% endif%}
 
                     {% if el[7] == 0 %}
-                        <button class="btn btn-info">Добавить в белый список</button>
+                        <button class="btn btn-info" name="value" value="is_whitelist1">Добавить в белый список</button>
                     {% else %}
-                        <button class="btn btn-info">Убрать из белого списка</button>
+                        <button class="btn btn-info" name="value" value="is_whitelist0">Убрать из белого списка</button>
                     {% endif%}
 
                     {% if el[8] == 0 %}
-                        <button class="btn btn-dark">Добавить в чёрный список</button>
+                        <button class="btn btn-dark" name="value" value="is_blacklist1">Добавить в чёрный список</button>
                     {% else %}
-                        <button class="btn btn-dark">Убрать из чёрного списка</button>
+                        <button class="btn btn-dark" name="value" value="is_blacklist0">Убрать из чёрного списка</button>
                     {% endif%}
-                </form>
-            
+                </form>        
             </div>
         {% endif%}
     {% endfor %}
 
-    <div class="alert alert-primary">
+    <!-- <div class="alert alert-primary">
         <form method="post">
             <h2 class="text-dark">Зарегистрировать тестового юзера</h2>
             <input type="text" name="name" id="name" class="form-control", placeholder="Name"><br>
             <input type="submit" class="btn btn-success" value="Зарегистрировать">
         </form>
-    </div>
+    </div> -->
     
 </div>
 

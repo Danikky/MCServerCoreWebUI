@@ -106,8 +106,12 @@ def server_files():
 @login_required
 def server_players():
     if request.method == "POST":
-        username = request.form["name"]
-        db.reg_player(username)
+        username = request.form.get("username")
+        value = request.form.get("value")
+        if "1" in value:
+            db.set_status(username, value.replace("1", ""), 1)
+        elif "0" in value:
+            db.set_status(username, value.replace("0", ""), 0)
         players_data = db.get_all_players_data()
         return render_template("server_players.html", players_data=players_data)
     else:

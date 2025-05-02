@@ -4,6 +4,7 @@ import sqlite3
 from flask_socketio import SocketIO, emit
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
+import db
 
 app = Flask("__main__")
 app.secret_key = os.urandom(24)
@@ -20,30 +21,14 @@ class User(UserMixin):
         self.id = user_id
         self.username = username
 
-# МЫ БУДЕМ ИСПОЛЬЗОВАТЬ SQLITE!!!!! НАХЕР ЭТОТ ALCEMISTRY!!!
-def init_db():
-    conn = sqlite3.connect('users.db')
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  username TEXT UNIQUE NOT NULL,
-                  password TEXT NOT NULL)''')
-    conn.commit()
-    conn.close()
-init_db()
+db.init_db()
 
-# Временный скрипт для создания администратора
-conn = sqlite3.connect('users.db')
-c = conn.cursor()
-admin_password = generate_password_hash('123') # пароль админа
-c.execute('INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)', 
-         ('admin', admin_password))
-conn.commit()
-conn.close()
+# ЙОООООУ ГАААЙСС!!!!! ТУТ НЕ ПОНЯТНО НИЧЕРТА, НАДО  ВЕСЬ SQL ПЕРЕНЕСТИ В ДРУГОЙ СКРИПТ!!!!!!!! Я ЗАПУТАЛСЯ!!!
+db.firts_time_admin()
         
 @login_manager.user_loader
 def load_user(user_id):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect('server.db')
     c = conn.cursor()
     c.execute('SELECT * FROM users WHERE id = ?', (user_id,))
     user = c.fetchone()
@@ -57,14 +42,8 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = generate_password_hash(request.form['password'])
-        
         try:
-            conn = sqlite3.connect('users.db')
-            c = conn.cursor()
-            c.execute('INSERT INTO users (username, password) VALUES (?, ?)', 
-                    (username, password))
-            conn.commit()
-            conn.close()
+            db.reg_user(username, password)
             flash('Регистрация прошла успешно!')
             return redirect(url_for('login'))
         except sqlite3.IntegrityError:
@@ -77,13 +56,7 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        
-        conn = sqlite3.connect('users.db')
-        c = conn.cursor()
-        c.execute('SELECT * FROM users WHERE username = ?', (username,))
-        user = c.fetchone()
-        conn.close()
-        
+        user = db.login(username)
         if user and check_password_hash(user[2], password):
             user_obj = User(user[0], user[1])
             login_user(user_obj)
@@ -127,10 +100,16 @@ def server_files():
     return render_template("server_files.html")
 
 # Управление игроками (Кто играет realtime, Кто заходил, Права, Баны, Вишлист)
-@app.route("/server/players")
+@app.route("/server/players", methods=["POST","GET"])
 @login_required
 def server_players():
-    return render_template("server_players.html")
+    if request.method == "POST":
+        name = request.form[name]
+        db.reg_player(name)
+        return render_template("server_players.html", players_data=players_data)
+    else:     
+        players_data = db.get_all_players_data()
+        return render_template("server_players.html", players_data=players_data)
 
 # Управление базами данных (Вывод/редактирование таблиц)
 @app.route("/server/sqltables")

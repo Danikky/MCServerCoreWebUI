@@ -9,6 +9,8 @@ import db
 app = Flask("__main__")
 app.secret_key = os.urandom(24)
 
+db_name = db.db_name
+
 socketio = SocketIO(app)
 
 # Настройка Flask-Login
@@ -28,7 +30,7 @@ db.firts_time_admin()
         
 @login_manager.user_loader
 def load_user(user_id):
-    conn = sqlite3.connect('server.db')
+    conn = sqlite3.connect(f"{db_name}")
     c = conn.cursor()
     c.execute('SELECT * FROM users WHERE id = ?', (user_id,))
     user = c.fetchone()
@@ -100,14 +102,15 @@ def server_files():
     return render_template("server_files.html")
 
 # Управление игроками (Кто играет realtime, Кто заходил, Права, Баны, Вишлист)
-@app.route("/server/players", methods=["POST","GET"])
+@app.route("/server/players", methods=["POST", "GET"])
 @login_required
 def server_players():
     if request.method == "POST":
-        name = request.form[name]
-        db.reg_player(name)
+        username = request.form["name"]
+        db.reg_player(username)
+        players_data = db.get_all_players_data()
         return render_template("server_players.html", players_data=players_data)
-    else:     
+    else:
         players_data = db.get_all_players_data()
         return render_template("server_players.html", players_data=players_data)
 

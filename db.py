@@ -6,8 +6,10 @@ import os
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
+db_name = "Server.db"
+
 def init_db():
-    conn = sqlite3.connect("server.db")
+    conn = sqlite3.connect(f"{db_name}")
     c = conn.cursor()
     
     c.execute("""CREATE TABLE IF NOT EXISTS users
@@ -39,7 +41,7 @@ def init_db():
 
 # Временный скрипт для создания администратора    
 def firts_time_admin():
-    conn = sqlite3.connect("server.db")
+    conn = sqlite3.connect(f"{db_name}")
     c = conn.cursor()
     admin_password = generate_password_hash('123') # пароль админа
     c.execute("INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)", ("admin", admin_password))
@@ -48,7 +50,7 @@ def firts_time_admin():
     conn.close()
     
 def register(username, password):
-    conn = sqlite3.connect("server.db")
+    conn = sqlite3.connect(f"{db_name}")
     c = conn.cursor()
     c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
     conn.commit()
@@ -57,7 +59,7 @@ def register(username, password):
 
 def login(username):
     try:
-        conn = sqlite3.connect("server.db")
+        conn = sqlite3.connect(f"{db_name}")
         c = conn.cursor()
         c.execute("SELECT * FROM users WHERE username = ?", (username,))
         user = c.fetchone()
@@ -70,33 +72,39 @@ def login(username):
         conn.close()
 
 # Зашёл первый раз (скрипт проверил)
-def reg_player(name):
+def reg_player(username):
     try:
-        conn = sqlite3.connect("server.db")
+        conn = sqlite3.connect(f"{db_name}")
         c = conn.cursor()
-        c.execute("INSERT INTO players (name, is_op, is_online, is_banned, is_ip_banned, is_vip, is_whitelist, is_blacklist) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (name, 0, 0, 0, 0, 0, 0, 0))
+        c.execute("INSERT INTO players (username) VALUES (?)", (username,))
     except:
+        print("пизда")
         return None
     finally:
         conn.commit()
         c.close()
         conn.close()
 
-# def set_status(name, status, value):
-#     try:
-#         conn = sqlite3.connect("server.db")
-#         c = conn.cursor()
-#         # Напомните мне кто нибудь это сделать
-#     except:
-#         return None
-#     finally:
-#         conn.commit()
-#         c.close()
-#         conn.close()
+        
+def set_status(username, status, value):
+    """Параметры:
+    Args:
+        status: is_online, is_op, is_banned, is_ip_banned, is_vip, is_whitelist, is_blacklist
+    """
+    try:
+        conn = sqlite3.connect(f"{db_name}")
+        c = conn.cursor()
+        c.execute(f"UPDATE players SET {status} = ? WHERE username = ?", (value, username))
+    except:
+        print("ошибка при обновлении статуса")
+    finally:
+        conn.commit()
+        c.close()
+        conn.close()
 
 def get_all_players_data():
     try:
-        conn = sqlite3.connect("server.db")
+        conn = sqlite3.connect(f"{db_name}")
         c = conn.cursor()
         c.execute("SELECT * FROM players")
         players_data = c.fetchall()
@@ -107,8 +115,3 @@ def get_all_players_data():
         conn.commit()
         c.close()
         conn.close()
-    
-
-reg_player("Kirill")
-reg_player("Stepan")
-reg_player("Danya")

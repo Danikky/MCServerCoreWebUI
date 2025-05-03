@@ -73,9 +73,16 @@
     {% endblock %}
 
     {% if current_user.is_authenticated %}
-        <img class="background" src="{{ url_for('static', filename='/res/img1.png') }}" alt="minecraft(main-link)">
+        <div class="container">
+            <img class="background" src="{{ url_for('static', filename='/res/img1.png') }}" alt="minecraft(main-link)">
+            <!-- <img class="background" src="{{ url_for('static', filename='/res/img2.png') }}" alt="minecraft(main-link)">
+            <img class="background" src="{{ url_for('static', filename='/res/img3.png') }}" alt="minecraft(main-link)">
+            <img class="background" src="{{ url_for('static', filename='/res/img4.png') }}" alt="minecraft(main-link)">
+            <img class="background" src="{{ url_for('static', filename='/res/img5.png') }}" alt="minecraft(main-link)">
+            <img class="background" src="{{ url_for('static', filename='/res/img6.png') }}" alt="minecraft(main-link)">
+            <img class="background" src="{{ url_for('static', filename='/res/img7.png') }}" alt="minecraft(main-link)"> -->
+        </div>
     {% else %}
-       
     {% endif %}
     
     <!-- <div class="container">

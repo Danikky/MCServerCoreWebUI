@@ -3,5 +3,14 @@
 {% block title %}Консоль сервера{% endblock %}
 
 {% block body %}
-
+<div class="alert alert-info">
+    <h1>Console</h1>
+    <form method="post">
+        {% for el in console_data %}
+            <h4>{{el}}</h4>
+        {% endfor %}
+        <input type="text" name="console_input" id="console_input" class="form-control", placeholder="Enter command"><br>
+        <input type="submit" class="btn btn-success" value="отправить">
+    </form>
+</div>
 {% endblock %}

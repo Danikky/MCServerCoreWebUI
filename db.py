@@ -3,6 +3,9 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 import sqlite3
 from flask_socketio import SocketIO, emit
 import os
+import sys
+import subprocess
+import threading
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
@@ -171,3 +174,56 @@ def get_properties_data():
                     value.strip()
                 ])
     return result
+
+class BatProcessManager:
+    def __init__(self, bat_path, working_dir):
+        self.bat_path = bat_path
+        self.working_dir = working_dir
+        self.process = None
+        self.running = False
+        self.output_data = []
+
+    def start(self):
+        """Запуск .bat файла"""
+        try:
+            self.process = subprocess.Popen(
+                ['cmd.exe', '/k', self.bat_path],  # /k сохраняет окно открытым после выполнения
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                cwd=self.working_dir,
+                text=True,
+                bufsize=1,
+                encoding='cp866'  # Кодировка для русских символов в Windows
+            )
+            self.running = True
+            
+            # Запускаем потоки для чтения вывода и ввода
+            threading.Thread(target=self._read_output, daemon=True).start()
+            threading.Thread(target=self._write_input, daemon=True).start()
+
+        except Exception as e:
+            print(f"Ошибка запуска: {e}")
+
+    def _read_output(self):
+        """Чтение вывода процесса"""
+        while self.running:
+            try:
+                line = self.process.stdout.readline()
+                if not line and self.process.poll() is not None:
+                    break
+                if line:     
+                    print(line.strip())
+                    self.output_data.append(line)
+            except Exception as e:
+                print(f"Ошибка чтения: {e}")
+                break
+
+    def _write_input(self, msg):
+        """Обработка ввода пользователя"""
+        try:
+            cmd = msg + '\n'
+            self.process.stdin.write(cmd)
+            self.process.stdin.flush()
+        except Exception as e:
+            print(f"Ошибка ввода: {e}")

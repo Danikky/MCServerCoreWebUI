@@ -3,6 +3,9 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 import sqlite3
 from flask_socketio import SocketIO, emit
 import os
+import sys
+import subprocess
+import threading
 from werkzeug.security import generate_password_hash, check_password_hash
 import db
 
@@ -26,6 +29,12 @@ class User(UserMixin):
 db.init_db()
 
 db.firts_time_admin()
+
+console_manager = db.BatProcessManager(
+        bat_path="C:\\Users\\riper\\ToolsUsefull\\MyProgramDev\\CoreServer\\start.bat",
+        working_dir="C:\\Users\\riper\\ToolsUsefull\\MyProgramDev\\CoreServer\\"
+    )
+
         
 @login_manager.user_loader
 def load_user(user_id):
@@ -71,7 +80,6 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
-
 # Главная страница (Вход, Оперативные операции, info)
 @app.route("/")
 def index():
@@ -83,10 +91,17 @@ def about():
     return render_template("about.html")
 
 # Управление (Консоль, Данные, Производительность, Игроки) (Fast data)
-@app.route("/server")
+@app.route("/server", methods=["POST", "GET"])
 @login_required
 def server():
-    return render_template("server.html")
+    if request.method == "POST":
+        console_input_msg = request.form.get("console_input")
+        console_manager._write_input(console_input_msg)
+        console_data = console_manager.output_data
+        return render_template("server.html", console_data=console_data)
+    else:
+        console_data = console_manager.output_data
+        return render_template("server.html", console_data=console_data)
 
 # Настройка сервера
 @app.route("/server/settings", methods=['GET', 'POST'])
@@ -139,4 +154,5 @@ def server_map():
 
 # Для безопастного импорта файла(как библиотека) + run
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=False) # ДЕБАГ ФАЛС ПОМЕЯТЬ НА TRUE!!!! При тестах
+    console_manager.start()
+    app.run(host='0.0.0.0', port=5000, debug=True) # ДЕБАГ ФАЛС ПОМЕЯТЬ НА TRUE!!!! При тестах

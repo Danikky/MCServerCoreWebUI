@@ -86,7 +86,6 @@ def reg_player(username):
         conn.commit()
         c.close()
         conn.close()
-
         
 def set_status(username, status, value):
     """Параметры:
@@ -123,19 +122,16 @@ def update_properties(key, value):
     file_path = "C:\\Users\\riper\\ToolsUsefull\\MyProgramDev\\CoreServer\\server.properties"
     updated = False
     new_lines = []
-
     with open(file_path, 'r', encoding='utf-8') as f:
         for line in f:
             # Сохраняем комментарии и пустые строки как есть
             if line.strip().startswith(('#', '!')) or len(line.strip()) == 0:
                 new_lines.append(line)
                 continue
-
             # Разделяем ключ и значение с сохранением разделителя
             if '=' in line:
                 key_part, value_part = line.split('=', 1)
                 current_key = key_part.strip()
-
                 if current_key == key:
                     # Сохраняем оригинальное форматирование
                     separator = line[len(key_part.rstrip()):].split('=', 1)[0]
@@ -146,47 +142,9 @@ def update_properties(key, value):
                     new_lines.append(line)
             else:
                 new_lines.append(line)
-
     if not updated:
         raise ValueError(f"Ключ '{key}' не найден в файле")
-
     # Перезаписываем файл
     with open(file_path, 'w', encoding='utf-8') as f:
         f.writelines(new_lines)
-
     return True
-
-class server_manager():
-    def __init__(self, path):
-        self.start_bat_path = path # путь к батнику запуска
-        self.start_bat_command = "" # параметры запука батника
-        self.console_data = [] # записывает все строки вывода консоли (для экономии ОЗУ ограничить до 1000строк)
-        self.players = [] # список онлайн игроков
-        self.online = len(self.players) # количество онлайна
-        
-    def start_server(self, start_command): # запускает сервер (subprocces)
-        self.start_command = start_command
-        pass
-    
-    def send_command(self, msg): # отправляет сообщение в консоль
-        # self.console_data.append(msg) - ? может не надо, на всяк
-        pass
-    
-    def get_console_output(self): # перехватывает вывод консоли
-        # line - ячейка списка console_data, строка вывода консоли
-        #
-        # if line == "игрок зашел на сервер":
-        #     self.players.append("игрок")
-        #     self.online += 1
-        #
-        # if line == "игрок покинул сервер":
-        #     self.players.'удаление'("игрок")
-        #     self.online -= 1
-        #
-        # if line == "рестарт":
-        #     self.online = 0
-        #     self.players = [] 
-        pass
-    
-    def close_server(self): # закрывает сервер
-        pass

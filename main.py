@@ -9,11 +9,68 @@ import threading
 from werkzeug.security import generate_password_hash, check_password_hash
 import stmc
 
-# Нужен скрипт - хранитель переменных !!!
-start_bat_path = "Путь к батнику, запускающему сервер"
-server_dir = "Папка сервера #для управления файлами"
-db_name = "Server.db" # или db.db_name
+class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
+    def __init__(self, path, dir):
+        self.bat_path = path # путь к батнику запуска
+        self.dir_path = dir # путь к папке сервера
+        
+        # Создаем процесс с перенаправлением потоков
+        proc = subprocess.Popen(
+            ['cmd.exe', '/c', self.bat_path],
+            cwd=self.dir_path,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            encoding='cp866'  # Кодировка консоли Windows
+        )
+        self.reader_thread = threading.Thread(
+            target=self.get_console_output,
+            daemon=True
+        )
+        self.start_bat_command = "" # параметры запука батника
+        self.console_data = [] # записывает все строки вывода консоли (для экономии ОЗУ ограничить до 1000строк)
+        self.players = [] # список онлайн игроков
+        self.online = len(self.players) # количество онлайна
+        self.lock = threading.Lock() # необходимость хз 1
+        self.proc = proc # неоходимость хз 2
+        self.reader_thread.start() # чёто стартит
+        
+    def start_server(self, start_command): # запускает сервер (subprocces)
+        # Запускаем поток для чтения вывода
+        pass
+    
+    def send_command(self, msg): # отправляет сообщение в консоль
+        # self.console_data.append(msg) - ? может не надо, на всяк
+        if self.proc.stdin and not self.proc.stdin.closed:
+                self.proc.stdin.write(msg + '\n')
+                self.proc.stdin.flush()
+    
+    def get_console_output(self): # перехватывает вывод консоли
+        while True:
+            line = self.proc.stdout.readline()
+            if not line and self.proc.poll() is not None:
+                break
+            with self.lock:
+                self.console_data.append(line)
+    
+    def is_running(self): # проверяет работает ли сервер
+        return self.proc.poll() is None
+    
+    def close_server(self): # закрывает сервер
+        pass
+    
+    def kill(self): # *неаккуратно* выключает сервер
+        if self.is_running():
+            self.proc.terminate()
 
+server_bat_path = "C:\\Users\\Acerr\\Desktop\\DanyaProgramms\\ServerMC\\start.bat"
+server_dir_path = "C:\\Users\\Acerr\\Desktop\\DanyaProgramms\\ServerMC"
+mcserver = server_manager(server_bat_path, server_dir_path)
+
+# Нужен скрипт - хранитель переменных !!!
+db_name = "Server.db" # или db.db_name
 
 app = Flask("__main__")
 app.secret_key = os.urandom(24)
@@ -93,9 +150,11 @@ def about():
 @login_required
 def server():
     if request.method == "POST":
-        return render_template("server.html")
+        console_data = mcserver.console_data
+        return render_template("server.html", console_data=console_data)
     else:
-        return render_template("server.html")
+        console_data = mcserver.console_data
+        return render_template("server.html", console_data=console_data)
 
 # Настройка сервера
 @app.route("/server/settings", methods=['GET', 'POST'])
@@ -110,11 +169,14 @@ def server_settings():
         properties_data = stmc.get_properties_data()
         return render_template("server_settings.html", properties_data=properties_data)
 
-# Управление файлами серрвера (редактирование/создание/удаление файлов, директорий)
-@app.route("/server/files")
+# Управление файлами сервера (редактирование/создание/удаление файлов, директорий)
+@app.route("/server/files", methods=["POST", "GET"])
 @login_required
 def server_files():
-    return render_template("server_files.html")
+    if request.method == "POST":
+        return render_template("server_files.html")
+    else:
+        return render_template("server_files.html")
 
 # Управление игроками (Кто играет realtime, Кто заходил, Права, Баны, Вишлист)
 @app.route("/server/players", methods=["POST", "GET"])

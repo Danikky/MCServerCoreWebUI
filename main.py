@@ -151,6 +151,8 @@ def about():
 def server():
     if request.method == "POST":
         console_data = mcserver.console_data
+        console_input = request.form.get("console_input")
+        mcserver.send_command(console_input)
         return render_template("server.html", console_data=console_data)
     else:
         console_data = mcserver.console_data

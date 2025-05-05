@@ -8,7 +8,6 @@ import subprocess
 import threading
 from werkzeug.security import generate_password_hash, check_password_hash
 
-
 db_name = "Server.db"
 
 def init_db():
@@ -157,73 +156,37 @@ def update_properties(key, value):
 
     return True
 
-def get_properties_data():
-    file_path = "C:\\Users\\riper\\ToolsUsefull\\MyProgramDev\\CoreServer\\server.properties"
-    result = []
-    with open(file_path, 'r', encoding='utf-8') as f:
-        for line in f:
-            # Убираем пробелы и пропускаем пустые строки/комментарии
-            stripped = line.strip()
-            if not stripped or stripped[0] in ('#', '!'):
-                continue
-            # Разделяем ключ и значение
-            if '=' in stripped:
-                key, value = stripped.split('=', 1)
-                result.append([
-                    key.strip(), 
-                    value.strip()
-                ])
-    return result
-
-class BatProcessManager:
-    def __init__(self, bat_path, working_dir):
-        self.bat_path = bat_path
-        self.working_dir = working_dir
-        self.process = None
-        self.running = False
-        self.output_data = []
-
-    def start(self):
-        """Запуск .bat файла"""
-        try:
-            self.process = subprocess.Popen(
-                ['cmd.exe', '/k', self.bat_path],  # /k сохраняет окно открытым после выполнения
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                cwd=self.working_dir,
-                text=True,
-                bufsize=1,
-                encoding='cp866'  # Кодировка для русских символов в Windows
-            )
-            self.running = True
-            
-            # Запускаем потоки для чтения вывода и ввода
-            threading.Thread(target=self._read_output, daemon=True).start()
-            threading.Thread(target=self._write_input, daemon=True).start()
-
-        except Exception as e:
-            print(f"Ошибка запуска: {e}")
-
-    def _read_output(self):
-        """Чтение вывода процесса"""
-        while self.running:
-            try:
-                line = self.process.stdout.readline()
-                if not line and self.process.poll() is not None:
-                    break
-                if line:     
-                    print(line.strip())
-                    self.output_data.append(line)
-            except Exception as e:
-                print(f"Ошибка чтения: {e}")
-                break
-
-    def _write_input(self, msg):
-        """Обработка ввода пользователя"""
-        try:
-            cmd = msg + '\n'
-            self.process.stdin.write(cmd)
-            self.process.stdin.flush()
-        except Exception as e:
-            print(f"Ошибка ввода: {e}")
+class server_manager():
+    def __init__(self, path):
+        self.start_bat_path = path # путь к батнику запуска
+        self.start_bat_command = "" # параметры запука батника
+        self.console_data = [] # записывает все строки вывода консоли (для экономии ОЗУ ограничить до 1000строк)
+        self.players = [] # список онлайн игроков
+        self.online = len(self.players) # количество онлайна
+        
+    def start_server(self, start_command): # запускает сервер (subprocces)
+        self.start_command = start_command
+        pass
+    
+    def send_command(self, msg): # отправляет сообщение в консоль
+        # self.console_data.append(msg) - ? может не надо, на всяк
+        pass
+    
+    def get_console_output(self): # перехватывает вывод консоли
+        # line - ячейка списка console_data, строка вывода консоли
+        #
+        # if line == "игрок зашел на сервер":
+        #     self.players.append("игрок")
+        #     self.online += 1
+        #
+        # if line == "игрок покинул сервер":
+        #     self.players.'удаление'("игрок")
+        #     self.online -= 1
+        #
+        # if line == "рестарт":
+        #     self.online = 0
+        #     self.players = [] 
+        pass
+    
+    def close_server(self): # закрывает сервер
+        pass

@@ -9,10 +9,14 @@ import threading
 from werkzeug.security import generate_password_hash, check_password_hash
 import db
 
+# Нужен скрипт - хранитель переменных !!!
+start_bat_path = "Путь к батнику, запускающему сервер"
+server_dir = "Папка сервера #для управления файлами"
+db_name = "Server.db" # или db.db_name
+
+
 app = Flask("__main__")
 app.secret_key = os.urandom(24)
-
-db_name = db.db_name
 
 socketio = SocketIO(app)
 
@@ -29,12 +33,6 @@ class User(UserMixin):
 db.init_db()
 
 db.firts_time_admin()
-
-console_manager = db.BatProcessManager(
-        bat_path="C:\\Users\\riper\\ToolsUsefull\\MyProgramDev\\CoreServer\\start.bat",
-        working_dir="C:\\Users\\riper\\ToolsUsefull\\MyProgramDev\\CoreServer\\"
-    )
-
         
 @login_manager.user_loader
 def load_user(user_id):
@@ -95,20 +93,15 @@ def about():
 @login_required
 def server():
     if request.method == "POST":
-        console_input_msg = request.form.get("console_input")
-        console_manager._write_input(console_input_msg)
-        console_data = console_manager.output_data
-        return render_template("server.html", console_data=console_data)
+        return render_template("server.html")
     else:
-        console_data = console_manager.output_data
-        return render_template("server.html", console_data=console_data)
+        return render_template("server.html")
 
 # Настройка сервера
 @app.route("/server/settings", methods=['GET', 'POST'])
 @login_required
 def server_settings():
     properties_data = db.get_properties_data()
-    new_values = []
     for i in range(len(properties_data)):
         new_value = request.form.get(properties_data[i][0])
         if new_value not in [None, "null", ""]:
@@ -154,5 +147,4 @@ def server_map():
 
 # Для безопастного импорта файла(как библиотека) + run
 if __name__ == "__main__":
-    console_manager.start()
-    app.run(host='0.0.0.0', port=5000, debug=True) # ДЕБАГ ФАЛС ПОМЕЯТЬ НА TRUE!!!! При тестах
+    app.run(host='0.0.0.0', port=5000, debug=True) # НЕ ТРОГАТЬ ПОКА РАБОТАЕТ!!!

@@ -8,7 +8,6 @@ import subprocess
 import threading
 from werkzeug.security import generate_password_hash, check_password_hash
 
-
 db_name = "Server.db"
 
 def init_db():
@@ -87,7 +86,6 @@ def reg_player(username):
         conn.commit()
         c.close()
         conn.close()
-
         
 def set_status(username, status, value):
     """Параметры:
@@ -124,19 +122,16 @@ def update_properties(key, value):
     file_path = "C:\\Users\\riper\\ToolsUsefull\\MyProgramDev\\CoreServer\\server.properties"
     updated = False
     new_lines = []
-
     with open(file_path, 'r', encoding='utf-8') as f:
         for line in f:
             # Сохраняем комментарии и пустые строки как есть
             if line.strip().startswith(('#', '!')) or len(line.strip()) == 0:
                 new_lines.append(line)
                 continue
-
             # Разделяем ключ и значение с сохранением разделителя
             if '=' in line:
                 key_part, value_part = line.split('=', 1)
                 current_key = key_part.strip()
-
                 if current_key == key:
                     # Сохраняем оригинальное форматирование
                     separator = line[len(key_part.rstrip()):].split('=', 1)[0]
@@ -147,83 +142,9 @@ def update_properties(key, value):
                     new_lines.append(line)
             else:
                 new_lines.append(line)
-
     if not updated:
         raise ValueError(f"Ключ '{key}' не найден в файле")
-
     # Перезаписываем файл
     with open(file_path, 'w', encoding='utf-8') as f:
         f.writelines(new_lines)
-
     return True
-
-def get_properties_data():
-    file_path = "C:\\Users\\riper\\ToolsUsefull\\MyProgramDev\\CoreServer\\server.properties"
-    result = []
-    with open(file_path, 'r', encoding='utf-8') as f:
-        for line in f:
-            # Убираем пробелы и пропускаем пустые строки/комментарии
-            stripped = line.strip()
-            if not stripped or stripped[0] in ('#', '!'):
-                continue
-            # Разделяем ключ и значение
-            if '=' in stripped:
-                key, value = stripped.split('=', 1)
-                result.append([
-                    key.strip(), 
-                    value.strip()
-                ])
-    return result
-
-class BatProcessManager:
-    def __init__(self, bat_path, working_dir):
-        self.bat_path = bat_path
-        self.working_dir = working_dir
-        self.process = None
-        self.running = False
-        self.output_data = []
-
-    def start(self):
-        """Запуск .bat файла"""
-        try:
-            self.process = subprocess.Popen(
-                ['cmd.exe', '/k', self.bat_path],  # /k сохраняет окно открытым после выполнения
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                cwd=self.working_dir,
-                text=True,
-                bufsize=1,
-                encoding='cp866'  # Кодировка для русских символов в Windows
-            )
-            self.running = True
-            
-            # Запускаем потоки для чтения вывода и ввода
-            threading.Thread(target=self._read_output, daemon=True).start()
-            threading.Thread(target=self._write_input, daemon=True).start()
-
-        except Exception as e:
-            print(f"Ошибка запуска: {e}")
-
-    def _read_output(self):
-        """Чтение вывода процесса"""
-        while self.running:
-            try:
-                line = self.process.stdout.readline()
-                if not line and self.process.poll() is not None:
-                    break
-                if line:     
-                    print(line.strip())
-                    self.output_data.append(line)
-            except Exception as e:
-                print(f"Ошибка чтения: {e}")
-                break
-
-    def _write_input(self, msg):
-        """Обработка ввода пользователя"""
-        try:
-            cmd = msg + '\n'
-            self.process.stdin.write(cmd)
-            self.process.stdin.flush()
-        except Exception as e:
-            print(f"Ошибка ввода: {e}")

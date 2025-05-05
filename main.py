@@ -7,7 +7,7 @@ import sys
 import subprocess
 import threading
 from werkzeug.security import generate_password_hash, check_password_hash
-import db
+import stmc
 
 # Нужен скрипт - хранитель переменных !!!
 start_bat_path = "Путь к батнику, запускающему сервер"
@@ -30,9 +30,9 @@ class User(UserMixin):
         self.id = user_id
         self.username = username
 
-db.init_db()
+stmc.init_db()
 
-db.firts_time_admin()
+stmc.firts_time_admin()
         
 @login_manager.user_loader
 def load_user(user_id):
@@ -51,7 +51,7 @@ def register():
         username = request.form['username']
         password = generate_password_hash(request.form['password'])
         try:
-            db.reg_user(username, password)
+            stmc.reg_user(username, password)
             flash('Регистрация прошла успешно!')
             return redirect(url_for('login'))
         except sqlite3.IntegrityError:
@@ -64,7 +64,7 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        user = db.login(username)
+        user = stmc.login(username)
         if user and check_password_hash(user[2], password):
             user_obj = User(user[0], user[1])
             login_user(user_obj)
@@ -101,13 +101,13 @@ def server():
 @app.route("/server/settings", methods=['GET', 'POST'])
 @login_required
 def server_settings():
-    properties_data = db.get_properties_data()
+    properties_data = stmc.get_properties_data()
     for i in range(len(properties_data)):
         new_value = request.form.get(properties_data[i][0])
         if new_value not in [None, "null", ""]:
-            db.update_properties(properties_data[i][0], new_value)
+            stmc.update_properties(properties_data[i][0], new_value)
     else:
-        properties_data = db.get_properties_data()
+        properties_data = stmc.get_properties_data()
         return render_template("server_settings.html", properties_data=properties_data)
 
 # Управление файлами серрвера (редактирование/создание/удаление файлов, директорий)
@@ -124,13 +124,13 @@ def server_players():
         username = request.form.get("username")
         value = request.form.get("value")
         if "1" in value:
-            db.set_status(username, value.replace("1", ""), 1)
+            stmc.set_status(username, value.replace("1", ""), 1)
         elif "0" in value:
-            db.set_status(username, value.replace("0", ""), 0)
-        players_data = db.get_all_players_data()
+            stmc.set_status(username, value.replace("0", ""), 0)
+        players_data = stmc.get_all_players_data()
         return render_template("server_players.html", players_data=players_data)
     else:
-        players_data = db.get_all_players_data()
+        players_data = stmc.get_all_players_data()
         return render_template("server_players.html", players_data=players_data)
 
 # Управление базами данных (Вывод/редактирование таблиц)

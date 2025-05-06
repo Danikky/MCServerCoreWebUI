@@ -29,6 +29,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             target=self.get_console_output,
             daemon=True
         )
+        
         self.start_bat_command = "" # параметры запука батника
         self.console_data = [] # записывает все строки вывода консоли (для экономии ОЗУ ограничить до 1000строк)
         self.players = [] # список онлайн игроков
@@ -50,6 +51,24 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def get_console_output(self): # перехватывает вывод консоли
         while True:
             line = self.proc.stdout.readline()
+            if "игрок зашёл на сервер" in line:
+                player_name = line.replace("игрок зашёл на сервер", "")
+                try:
+                    stmc.reg_player(player_name)
+                except:
+                    print("Игрок уже зарегистрирован")
+                finally:
+                    stmc.set_status(player_name, "is_online", 1)
+                    
+            elif "игрок вышел с сервера" in line:
+                player_name = line.replace("игрок зашёл на сервер", "")
+                try:
+                    stmc.reg_player(player_name)
+                except:
+                    return "Игрок уже зарегистрирован"
+                finally:
+                    stmc.set_status(player_name, "is_online", 0)
+                    
             if not line and self.proc.poll() is not None:
                 break
             with self.lock:

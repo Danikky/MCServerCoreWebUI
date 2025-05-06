@@ -9,6 +9,7 @@ import threading
 from werkzeug.security import generate_password_hash, check_password_hash
 
 db_name = "Server.db"
+properties_path = "C:\\Users\\Acerr\\Desktop\\DanyaProgramms\\ServerMC\\server.properties"
 
 def init_db():
     conn = sqlite3.connect(f"{db_name}")
@@ -117,12 +118,28 @@ def get_all_players_data():
         c.close()
         conn.close()
         
+def get_properties_data():
+    result = []
+    with open(properties_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            # Убираем пробелы и пропускаем пустые строки/комментарии
+            stripped = line.strip()
+            if not stripped or stripped[0] in ('#', '!'):
+                continue
+            # Разделяем ключ и значение
+            if '=' in stripped:
+                key, value = stripped.split('=', 1)
+                result.append([
+                    key.strip(), 
+                    value.strip()
+                ])
+    return result
+        
 def update_properties(key, value):
     # Сюда путь к файлу с настройками (НЕ ЗАБЫТЬ \\ ВМЕСТО \)
-    file_path = "C:\\Users\\riper\\ToolsUsefull\\MyProgramDev\\CoreServer\\server.properties"
     updated = False
     new_lines = []
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(properties_path, 'r', encoding='utf-8') as f:
         for line in f:
             # Сохраняем комментарии и пустые строки как есть
             if line.strip().startswith(('#', '!')) or len(line.strip()) == 0:
@@ -145,6 +162,6 @@ def update_properties(key, value):
     if not updated:
         raise ValueError(f"Ключ '{key}' не найден в файле")
     # Перезаписываем файл
-    with open(file_path, 'w', encoding='utf-8') as f:
+    with open(properties_path, 'w', encoding='utf-8') as f:
         f.writelines(new_lines)
     return True

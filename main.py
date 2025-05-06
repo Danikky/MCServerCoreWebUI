@@ -6,24 +6,26 @@ import os
 import sys
 import subprocess
 import threading
+import time
 from werkzeug.security import generate_password_hash, check_password_hash
 import stmc
 
 class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def __init__(self, path, dir):
+        time.sleep(2)
         self.bat_path = path # путь к батнику запуска
         self.dir_path = dir # путь к папке сервера
         
         # Создаем процесс с перенаправлением потоков
-        proc = subprocess.Popen(
-            ['cmd.exe', '/c', self.bat_path],
+        self.proc = subprocess.Popen(
+            [self.bat_path],  # Запуск напрямую через .bat
             cwd=self.dir_path,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,
             bufsize=1,
-            encoding='cp866'  # Кодировка консоли Windows
+            universal_newlines=True,  # Автоматическая обработка кодировки
+            shell=True  # Важно для .bat файлов в Windows
         )
         self.reader_thread = threading.Thread(
             target=self.get_console_output,
@@ -35,7 +37,6 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         self.players = [] # список онлайн игроков
         self.online = len(self.players) # количество онлайна
         self.lock = threading.Lock() # необходимость хз 1
-        self.proc = proc # неоходимость хз 2
         self.reader_thread.start() # чёто стартит
         
     def start_server(self, start_command): # запускает сервер (subprocces)
@@ -45,40 +46,42 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def send_command(self, msg): # отправляет сообщение в консоль
         # self.console_data.append(msg) - ? может не надо, на всяк
         if self.proc.stdin and not self.proc.stdin.closed:
+            try:
                 self.proc.stdin.write(msg + '\n')
                 self.proc.stdin.flush()
-    
-    def get_console_output(self): # перехватывает вывод консоли
-        while True:
+            except:
+                return "Сервер не робит:("
+            
+    def get_console_output(self):
+        while self.proc.poll() is None:
             line = self.proc.stdout.readline()
-            if "игрок зашёл на сервер" in line:
-                player_name = line.replace("игрок зашёл на сервер", "")
-                try:
-                    stmc.reg_player(player_name)
-                except:
-                    print("Игрок уже зарегистрирован")
-                finally:
-                    stmc.set_status(player_name, "is_online", 1)
-                    
-            elif "игрок вышел с сервера" in line:
-                player_name = line.replace("игрок зашёл на сервер", "")
-                try:
-                    stmc.reg_player(player_name)
-                except:
-                    return "Игрок уже зарегистрирован"
-                finally:
-                    stmc.set_status(player_name, "is_online", 0)
-                    
-            if not line and self.proc.poll() is not None:
-                break
+            if not line:
+                continue
+
+            # Парсим события игроков
+            if "joined the game" in line:
+                parts = line.split()
+                username = parts[3]  # Пример: [12:34:56 INFO]: TestUser joined the game
+                self._update_player_status(username, True)
+
+            elif "left the game" in line:
+                parts = line.split()
+                username = parts[3]
+                self._update_player_status(username, False)
+
+            # Сохраняем вывод
             with self.lock:
-                self.console_data.append(line)
+                if len(self.console_data) >= 1000:
+                    self.console_data.pop(0)
+                self.console_data.append(line.strip())
     
     def is_running(self): # проверяет работает ли сервер
         return self.proc.poll() is None
     
-    def close_server(self): # закрывает сервер
-        pass
+    def close_server(self):
+        if self.is_running():
+            self.send_command("stop")  # Корректная команда остановки для Minecraft
+            self.proc.wait()  # Дождаться завершения
     
     def kill(self): # *неаккуратно* выключает сервер
         if self.is_running():

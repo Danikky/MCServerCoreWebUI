@@ -3,14 +3,51 @@
 {% block title %}Консоль сервера{% endblock %}
 
 {% block body %}
-<div class="alert alert-info">
-    <h1>Console</h1>
-    <form method="post">
-        {% for el in console_data %}
-            <h4>{{el}}</h4>
-        {% endfor %}
-        <input type="text" name="console_input" id="console_input" class="form-control", placeholder="Enter command"><br>
-        <input type="submit" class="btn btn-success" value="отправить">
-    </form>
+
+<style>
+    .console-container {
+        background-color: #1d1d1d; /* Темный фон контейнера */
+        border: 2px solid #404040;
+        border-radius: 8px;
+        padding: 10px;
+        color: #e0e0e0; /* Цвет текста */
+    }
+
+    .scroll-container {
+        max-height: 60vh; /* Максимальная высота 60% от высоты экрана */
+        height: 900px; /* Фиксированная высота по умолчанию */
+        overflow-y: auto; /* Вертикальный скролл */
+        background-color: #1f1f1f;
+        padding: 15px;
+        border: 2px solid #333;
+        margin-bottom: 20px;
+    }
+
+    .scroll-container::-webkit-scrollbar {
+        width: 8px;
+        background-color: #1a1a1a;
+    }
+
+    .scroll-container::-webkit-scrollbar-thumb {
+        background-color: #404040;
+        border-radius: 4px;
+    }
+</style>
+
+<div class="container-fluid vh-100 m-0" style="padding-left: 5%; padding-right: 5%;">
+    <div class="alert alert-info">
+        <h1 class="text-center">Console</h1>
+        <form method="post">
+            <div class="console-container scroll-container">
+                {% for el in console_output %}
+                    <p class="fonter">{{el}}</p>
+                {% endfor %}
+            </div>
+                    <br><input type="text" name="console_input" id="console_input" class="form-control", placeholder="Enter command" required="1"><br>
+                    <input type="submit" class="btn btn-success" value="отправить">
+                    <input type="button" class="btn btn-danger float-end" value="Остановить сервер" onclick="return confirm('Ты гей?')">
+                    <input type="button" class="btn btn-warning float-end" style="margin-right: 10px;" value="Перезапустить сервер">
+        </form>
+    </div>
 </div>
 {% endblock %}

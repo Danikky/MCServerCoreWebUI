@@ -4,93 +4,86 @@ import sqlite3
 from flask_socketio import SocketIO, emit
 import os
 import sys
+import psutil
+from mcrcon import MCRcon
 import subprocess
 import threading
 import time
 from werkzeug.security import generate_password_hash, check_password_hash
 import stmc
-
 class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def __init__(self, path):
-        time.sleep(2)
-        self.server_path = path # путь директории сервера
-        
-        # Создаем процесс с перенаправлением потоков
-        self.proc = subprocess.Popen(
-            [self.bat_path],  # Запуск напрямую через .bat
-            cwd=self.dir_path,
+        # self._kill_processes_locking_file(os.path.join(path, "world", "session.lock"))
+
+        self.proccess = subprocess.Popen(
+            ['java', '-Xmx8024M', '-Xms1024M', '-jar', 'paper-1.21.4-227.jar'],
+            cwd=path,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
+            text=True,
             bufsize=1,
-            universal_newlines=True,  # Автоматическая обработка кодировки
-            shell=True  # Важно для .bat файлов в Windows
+            universal_newlines=True
         )
+
         self.reader_thread = threading.Thread(
             target=self.get_console_output,
             daemon=True
         )
+
+        self.reader_thread.start()
         
-        self.start_bat_command = "" # параметры запука батника
-        self.console_data = [] # записывает все строки вывода консоли (для экономии ОЗУ ограничить до 1000строк)
-        self.players = [] # список онлайн игроков
-        self.online = len(self.players) # количество онлайна
-        self.lock = threading.Lock() # необходимость хз 1
-        self.reader_thread.start() # чёто стартит
-        
-    def start_server(self, start_command): # запускает сервер (subprocces)
-        # Запускаем поток для чтения вывода
-        pass
+        self.console_output  = []
+        self.players = stmc.get_online()
+
+    def get_console_output(self):
+        while True:
+            line = self.proccess.stdout.readline()
+            if not line and self.proccess.poll() is not None:
+                break
+            if line:
+                self.console_event_check(line)
+                print(line.strip())
+                self.console_output.append(line.strip())
     
-    def send_command(self, msg): # отправляет сообщение в консоль
-        # self.console_data.append(msg) - ? может не надо, на всяк
-        if self.proc.stdin and not self.proc.stdin.closed:
-            try:
-                self.proc.stdin.write(msg + '\n')
-                self.proc.stdin.flush()
-            except:
-                return "Сервер не робит:("
+    def send_stdin_command(self, command):
+        self.proccess.stdin.write(command + "\n")
+        self.proccess.stdin.flush()
+    
+    def send_rcon_command(self, command: str):
+        try:
+            with MCRcon("localhost", "111111", 25575) as mcr:
+                response = mcr.command(command)
+                print(f"Ответ сервера: {response}")
+        except Exception as e:
+            print(f"Ошибка: {str(e)}", file=sys.stderr)
+    
+    def console_event_check(self, line: str):
+        if "joined the game" in line: 
+            line_data = line.split() # разделяет строку на список по пробелам
+            name = line_data[2].replace("[38;2;255;255;85m", "")
+            stmc.reg_player(name)
+            stmc.set_status(name, "is_online", True)
             
-    def console_output_reader(self):
-        while self.proc.poll() is None:
-            line = self.proc.stdout.readline()
-            if not line:
+        if "left the game" in line:
+            line_data = line.split() # разделяет строку на список по пробелам
+            name = line_data[2].replace("[38;2;255;255;85m", "")
+            stmc.set_status(name, "is_online", False)
+            
+    
+    def is_server_running(self):
+        """Проверяет, работает ли процесс сервера"""
+        for proc in psutil.process_iter():
+            try:
+                if "java" in proc.name().lower() and "paper" in " ".join(proc.cmdline()):
+                    return True
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
+        return False
 
-            # Парсим события игроков
-            if "joined the game" in line:
-                parts = line.split()
-                username = parts[3]  # Пример: [12:34:56 INFO]: TestUser joined the game
-                self._update_player_status(username, True)
+server_dir_path = "C:\\Users\\riper\\ToolsUsefull\\MyProgramDev\\CoreServer"
+server = server_manager(server_dir_path)
 
-            elif "left the game" in line:
-                parts = line.split()
-                username = parts[3]
-                self._update_player_status(username, False)
-
-            # Сохраняем вывод
-            with self.lock:
-                if len(self.console_data) >= 1000:
-                    self.console_data.pop(0)
-                self.console_data.append(line.strip())
-    
-    def console_event_checker(self):
-        pass
-    
-    def is_running(self): # проверяет работает ли сервер
-        return self.proc.poll() is None
-    
-    def close_server(self):
-        if self.is_running():
-            self.send_command("stop")  # Корректная команда остановки для Minecraft
-            self.proc.wait()  # Дождаться завершения
-    
-    def kill(self): # *неаккуратно* выключает сервер
-        if self.is_running():
-            self.proc.terminate()
-
-server_dir_path = "C:\\Users\\Acerr\\Desktop\\DanyaProgramms\\ServerMC"
-mcserver = server_manager(server_dir_path)
 
 # Нужен скрипт - хранитель переменных !!!
 db_name = "Server.db" # или db.db_name
@@ -99,6 +92,9 @@ app = Flask("__main__")
 app.secret_key = os.urandom(24)
 
 socketio = SocketIO(app)
+@socketio.on('request_update')
+def handle_update():
+    emit('console_update', {'output': server.console_output[-20:]})  # Последние 20 строк
 
 # Настройка Flask-Login
 login_manager = LoginManager()
@@ -171,15 +167,17 @@ def about():
 # Управление (Консоль, Данные, Производительность, Игроки) (Fast data)
 @app.route("/server", methods=["POST", "GET"])
 @login_required
-def server():
+def server_console():
+    console_output = []
     if request.method == "POST":
-        console_data = mcserver.console_data
+        console_output = server.console_output
         console_input = request.form.get("console_input")
-        mcserver.send_command(console_input)
-        return render_template("server.html", console_data=console_data)
+        if console_input != "":
+            server.send_rcon_command(console_input)
+        return render_template("server.html", console_output=console_output)
     else:
-        console_data = mcserver.console_data
-        return render_template("server.html", console_data=console_data)
+        console_output = server.console_output
+        return render_template("server.html", console_output=console_output)
 
 # Настройка сервера
 @app.route("/server/settings", methods=['GET', 'POST'])
@@ -208,6 +206,7 @@ def server_files():
 @login_required
 def server_players():
     if request.method == "POST":
+        online_players = server.players
         username = request.form.get("username")
         value = request.form.get("value")
         if "1" in value:
@@ -215,10 +214,11 @@ def server_players():
         elif "0" in value:
             stmc.set_status(username, value.replace("0", ""), 0)
         players_data = stmc.get_all_players_data()
-        return render_template("server_players.html", players_data=players_data)
+        return render_template("server_players.html", players_data=players_data, online_players=online_players)
     else:
+        online_players = server.players
         players_data = stmc.get_all_players_data()
-        return render_template("server_players.html", players_data=players_data)
+        return render_template("server_players.html", players_data=players_data, online_players=online_players)
 
 # Управление базами данных (Вывод/редактирование таблиц)
 @app.route("/server/sqltables")
@@ -235,3 +235,4 @@ def server_map():
 # Для безопастного импорта файла(как библиотека) + run
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=True) # НЕ ТРОГАТЬ ПОКА РАБОТАЕТ!!!
+    

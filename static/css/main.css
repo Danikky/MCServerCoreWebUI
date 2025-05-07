@@ -1,3 +1,8 @@
+body{
+    background-color: rgb(58, 58, 58);
+}
+
+
 header {
     padding: 25px; /* Исправлено: добавлены px */
     z-index: 200;
@@ -77,4 +82,17 @@ header {
 .form-control {
     font-family: monospace;
 }
+
+.fonter {
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+.scroll-container {
+	overflow: scroll;
+  @supports (scrollbar-gutter: stable) {
+  overflow: auto;    
+  scrollbar-gutter: stable;  
+  }
+}
+    
 /* Для работы server_settings */

@@ -3,18 +3,19 @@
 {% block title %}Вход{% endblock %}
 
 {% block body %}
+
 <div class="container mt-5">
     <div class="row justify-content-center">
-        <div class="col-md-6">
+        <div class="col-md-9">
             <div class="card">
                 <div class="card-header">Вход в систему</div>
                 <div class="card-body">
                     <form method="POST">
-                        <div class="mb-3">
+                        <div class="mb-4">
                             <label for="username" class="form-label">Имя пользователя</label>
                             <input type="text" class="form-control" id="username" name="username" required>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-4">
                             <label for="password" class="form-label">Пароль</label>
                             <input type="password" class="form-control" id="password" name="password" required>
                         </div>

@@ -9,7 +9,7 @@ import threading
 from werkzeug.security import generate_password_hash, check_password_hash
 
 db_name = "Server.db"
-properties_path = "C:\\Users\\Acerr\\Desktop\\DanyaProgramms\\ServerMC\\server.properties"
+properties_path = "C:\\Users\\riper\\ToolsUsefull\\MyProgramDev\\CoreServer\\server.properties"
 
 def init_db():
     conn = sqlite3.connect(f"{db_name}")
@@ -81,7 +81,6 @@ def reg_player(username):
         c = conn.cursor()
         c.execute("INSERT INTO players (username) VALUES (?)", (username,))
     except:
-        print("пизда")
         return None
     finally:
         conn.commit()
@@ -103,7 +102,24 @@ def set_status(username, status, value):
         conn.commit()
         c.close()
         conn.close()
-
+        
+def get_online():
+    try:
+        conn = sqlite3.connect(f"{db_name}")
+        c = conn.cursor()
+        c.execute("SELECT * FROM players WHERE is_online = True")
+        online = c.fetchall()
+        if online != None:
+            return online
+        else:
+            return 0
+    except:
+        print("ПИЗДАААААААААААААААА")
+    finally:
+        conn.commit()
+        c.close()
+        conn.close()
+        
 def get_all_players_data():
     try:
         conn = sqlite3.connect(f"{db_name}")
@@ -161,6 +177,7 @@ def update_properties(key, value):
                 new_lines.append(line)
     if not updated:
         raise ValueError(f"Ключ '{key}' не найден в файле")
+    
     # Перезаписываем файл
     with open(properties_path, 'w', encoding='utf-8') as f:
         f.writelines(new_lines)

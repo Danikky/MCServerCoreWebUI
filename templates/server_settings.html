@@ -3,16 +3,36 @@
 {% block title %}Настройки сервера{% endblock %}
 
 {% block body %}
-<div class="alert alert-info">
-    <h1>Настройки: </h1>
-    <form method="post">
-        {% for el in properties_data %}
-            <div class="alert alert-primary">
-                <h4 class="text-dark">{{el[0]}}</h4>
-                <input type="text" name="{{el[0]}}" id="value" class="form-control", placeholder={{el[1]}}><br>
+<div class="container-fluid px-0">
+    <div class="alert alert-info">
+        <h1 class="mb-4">Настройки сервера</h1>
+        <form method="post">
+            {# Группируем элементы по 3 в ряду #}
+            <div class="row">
+                {% for el in properties_data %}
+                    <div class="col-md-2 mb-3">
+                        <div class="alert alert-primary h-100">
+                            <h5 class="text-dark">{{ el[0] }}</h5>
+                            <input type="text" 
+                                   name="{{ el[0] }}" 
+                                   class="form-control" 
+                                   placeholder="{{ el[1] }}">
+                        </div>
+                    </div>
+
+                    {# Переносим на новую строку каждые 3 элемента #}
+                    {% if loop.index % 6 == 0 and not loop.last %}
+                        </div><div class="row">
+                    {% endif %}
+                {% endfor %}
             </div>
-        {% endfor %}
-        <input type="submit" class="btn btn-success" value="сохранить">
-    </form>
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-success btn-lg">
+                    Сохранить изменения
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}

@@ -11,10 +11,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import stmc
 
 class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
-    def __init__(self, path, dir):
+    def __init__(self, path):
         time.sleep(2)
-        self.bat_path = path # путь к батнику запуска
-        self.dir_path = dir # путь к папке сервера
+        self.server_path = path # путь директории сервера
         
         # Создаем процесс с перенаправлением потоков
         self.proc = subprocess.Popen(
@@ -52,7 +51,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             except:
                 return "Сервер не робит:("
             
-    def get_console_output(self):
+    def console_output_reader(self):
         while self.proc.poll() is None:
             line = self.proc.stdout.readline()
             if not line:
@@ -75,6 +74,9 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                     self.console_data.pop(0)
                 self.console_data.append(line.strip())
     
+    def console_event_checker(self):
+        pass
+    
     def is_running(self): # проверяет работает ли сервер
         return self.proc.poll() is None
     
@@ -87,9 +89,8 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         if self.is_running():
             self.proc.terminate()
 
-server_bat_path = "C:\\Users\\Acerr\\Desktop\\DanyaProgramms\\ServerMC\\start.bat"
 server_dir_path = "C:\\Users\\Acerr\\Desktop\\DanyaProgramms\\ServerMC"
-mcserver = server_manager(server_bat_path, server_dir_path)
+mcserver = server_manager(server_dir_path)
 
 # Нужен скрипт - хранитель переменных !!!
 db_name = "Server.db" # или db.db_name

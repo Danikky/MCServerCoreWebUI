@@ -11,10 +11,13 @@ import threading
 import time
 from werkzeug.security import generate_password_hash, check_password_hash
 import stmc
+
+stmc.init_db()
 class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def __init__(self, path):
         # self._kill_processes_locking_file(os.path.join(path, "world", "session.lock"))
-
+        stmc.set_all_offline()
+        
         self.proccess = subprocess.Popen(
             ['java', '-Xmx8024M', '-Xms1024M', '-jar', 'paper-1.21.4-227.jar'],
             cwd=path,
@@ -32,8 +35,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         )
         
         self.reader_thread.start()
-        self.players = stmc.get_online()
-
+    
     def get_console_output(self):
         while True:
             line = self.proccess.stdout.readline()
@@ -43,10 +45,6 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                 self.console_event_check(line)
                 print(line.strip())
                 stmc.add_line(line)
-    
-    def send_stdin_command(self, command):
-        self.proccess.stdin.write(command + "\n")
-        self.proccess.stdin.flush()
     
     def send_rcon_command(self, command: str):
         try:
@@ -107,8 +105,6 @@ class User(UserMixin):
     def __init__(self, user_id, username):
         self.id = user_id
         self.username = username
-
-stmc.init_db()
 
 stmc.firts_time_admin()
         
@@ -175,6 +171,9 @@ def server_console():
         console_input = request.form.get("console_input")
         if console_input != "":
             server.send_rcon_command(console_input)
+        command = request.form.get("command")
+        if command != "":
+            server.send_rcon_command(command)
         console_output = stmc.get_console_output()
         return render_template("server.html", console_output=console_output)
     else:
@@ -208,7 +207,7 @@ def server_files():
 @login_required
 def server_players():
     if request.method == "POST":
-        online_players = server.players
+        online_players = 0
         username = request.form.get("username")
         value = request.form.get("value")
         if "1" in value:
@@ -218,7 +217,7 @@ def server_players():
         players_data = stmc.get_all_players_data()
         return render_template("server_players.html", players_data=players_data, online_players=online_players)
     else:
-        online_players = server.players
+        online_players = 0
         players_data = stmc.get_all_players_data()
         return render_template("server_players.html", players_data=players_data, online_players=online_players)
 

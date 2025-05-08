@@ -8,7 +8,7 @@ import subprocess
 import threading
 from werkzeug.security import generate_password_hash, check_password_hash
 
-db_name = "DBname.db"
+db_name = "DataBase.db"
 properties_path = "C:\\Users\\riper\\ToolsUsefull\\MyProgramDev\\CoreServer\\server.properties"
 
 def init_db():
@@ -163,6 +163,19 @@ def get_console_output():
         conn.commit()
         c.close()
         conn.close()
+
+def set_all_offline():
+    for i in get_all_players_data():
+        try:
+            conn = sqlite3.connect(f"{db_name}")
+            c = conn.cursor()
+            c.execute(f"UPDATE players SET is_online = False WHERE username = ?", (i[1],))
+        except:
+            print("ошибка при обновлении статуса")
+        finally:
+            conn.commit()
+            c.close()
+            conn.close()
         
 def get_properties_data():
     result = []

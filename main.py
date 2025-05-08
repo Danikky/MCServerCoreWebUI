@@ -17,10 +17,14 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def __init__(self, path):
         # self._kill_processes_locking_file(os.path.join(path, "world", "session.lock"))
         stmc.set_all_offline()
+        self.path = path
+        self.start_server()
+    
+    def start_server(self):
         
         self.proccess = subprocess.Popen(
             ['java', '-Xmx8024M', '-Xms1024M', '-jar', 'paper-1.21.4-227.jar'],
-            cwd=path,
+            cwd=self.path,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -169,16 +173,22 @@ def server_console():
     console_output = []
     if request.method == "POST":
         console_input = request.form.get("console_input")
-        if console_input != "":
-            server.send_rcon_command(console_input)
+        server.send_rcon_command(console_input)
         command = request.form.get("command")
+        
         if command != "":
-            server.send_rcon_command(command)
+            if command == "start":
+                server.start_server()
+            else:
+                server.send_rcon_command(command)
+            
         console_output = stmc.get_console_output()
-        return render_template("server.html", console_output=console_output)
+        is_server_run = server.is_server_running()
+        return render_template("server.html", console_output=console_output, is_server_run=is_server_run)
     else:
         console_output = stmc.get_console_output()
-        return render_template("server.html", console_output=console_output)
+        is_server_run = server.is_server_running()
+        return render_template("server.html", console_output=console_output, is_server_run=is_server_run)
 
 # Настройка сервера
 @app.route("/server/settings", methods=['GET', 'POST'])

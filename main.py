@@ -30,10 +30,8 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             target=self.get_console_output,
             daemon=True
         )
-
-        self.reader_thread.start()
         
-        self.console_output  = []
+        self.reader_thread.start()
         self.players = stmc.get_online()
 
     def get_console_output(self):
@@ -44,7 +42,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             if line:
                 self.console_event_check(line)
                 print(line.strip())
-                self.console_output.append(line.strip())
+                stmc.add_line(line)
     
     def send_stdin_command(self, command):
         self.proccess.stdin.write(command + "\n")
@@ -54,6 +52,8 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         try:
             with MCRcon("localhost", "111111", 25575) as mcr:
                 response = mcr.command(command)
+                stmc.add_line(command)
+                stmc.add_line(response)
                 print(f"Ответ сервера: {response}")
         except Exception as e:
             print(f"Ошибка: {str(e)}", file=sys.stderr)
@@ -64,11 +64,13 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             name = line_data[2].replace("[38;2;255;255;85m", "")
             stmc.reg_player(name)
             stmc.set_status(name, "is_online", True)
+            self.players = stmc.get_online()
             
         if "left the game" in line:
             line_data = line.split() # разделяет строку на список по пробелам
             name = line_data[2].replace("[38;2;255;255;85m", "")
             stmc.set_status(name, "is_online", False)
+            self.players = stmc.get_online()
             
     
     def is_server_running(self):
@@ -86,15 +88,15 @@ server = server_manager(server_dir_path)
 
 
 # Нужен скрипт - хранитель переменных !!!
-db_name = "Server.db" # или db.db_name
+db_name = stmc.db_name
 
 app = Flask("__main__")
 app.secret_key = os.urandom(24)
 
-socketio = SocketIO(app)
-@socketio.on('request_update')
-def handle_update():
-    emit('console_update', {'output': server.console_output[-20:]})  # Последние 20 строк
+# socketio = SocketIO(app)
+# @socketio.on('request_update')
+# def handle_update():
+#     emit('console_update', {'output': server.console_output[-20:]})  # Последние 20 строк
 
 # Настройка Flask-Login
 login_manager = LoginManager()
@@ -170,13 +172,13 @@ def about():
 def server_console():
     console_output = []
     if request.method == "POST":
-        console_output = server.console_output
         console_input = request.form.get("console_input")
         if console_input != "":
             server.send_rcon_command(console_input)
+        console_output = stmc.get_console_output()
         return render_template("server.html", console_output=console_output)
     else:
-        console_output = server.console_output
+        console_output = stmc.get_console_output()
         return render_template("server.html", console_output=console_output)
 
 # Настройка сервера

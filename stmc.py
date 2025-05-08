@@ -8,7 +8,7 @@ import subprocess
 import threading
 from werkzeug.security import generate_password_hash, check_password_hash
 
-db_name = "Server.db"
+db_name = "DBname.db"
 properties_path = "C:\\Users\\riper\\ToolsUsefull\\MyProgramDev\\CoreServer\\server.properties"
 
 def init_db():
@@ -16,10 +16,10 @@ def init_db():
     c = conn.cursor()
     
     c.execute("""CREATE TABLE IF NOT EXISTS users
-                (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL
-                )""")
+    (id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL
+    )""")
     
     # Статусы игрока будут браться из файлов сервера, там списки забаненых и т.д,
     # Онлайн игрока будет ставиться так: Скрипт проверяет консоль- если есть сообщение о присоединении игрока
@@ -27,16 +27,20 @@ def init_db():
     # которе нужен крутой мониторющий консоль и файлы скрипт. и пару моментов с несоответствиями проработать
     # Нужно это всё для вкладки players и отображения онлайна. я сам придумал, хз как ещё можно
     c.execute("""CREATE TABLE IF NOT EXISTS players
-                (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                is_online BOOLEAN DEFAULT FALSE,
-                is_op BOOLEAN DEFAULT FALSE,
-                is_banned BOOLEAN DEFAULT FALSE,
-                is_ip_banned BOOLEAN DEFAULT FALSE,
-                is_vip BOOLEAN DEFAULT FALSE,        
-                is_whitelist BOOLEAN DEFAULT FALSE,
-                is_blacklist BOOLEAN DEFAULT FALSE
-                )""")
+    (id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    is_online BOOLEAN DEFAULT FALSE,
+    is_op BOOLEAN DEFAULT FALSE,
+    is_banned BOOLEAN DEFAULT FALSE,
+    is_ip_banned BOOLEAN DEFAULT FALSE,
+    is_vip BOOLEAN DEFAULT FALSE,        
+    is_whitelist BOOLEAN DEFAULT FALSE,
+    is_blacklist BOOLEAN DEFAULT FALSE
+    )""")
+    
+    c.execute(""" CREATE TABLE IF NOT EXISTS console_output (
+    line TEXT NOT NULL
+    )""")
     
     conn.commit()
     c.close()
@@ -129,6 +133,32 @@ def get_all_players_data():
         return players_data
     except:
         return None
+    finally:
+        conn.commit()
+        c.close()
+        conn.close()
+        
+def add_line(line):
+    try:
+        conn = sqlite3.connect(f"{db_name}")
+        c = conn.cursor()
+        c.execute("INSERT INTO console_output (line) VALUES (?)", (line,))
+    except:
+        print("При добавлении линии чтото наебнулось")
+    finally:
+        conn.commit()
+        c.close()
+        conn.close()
+
+def get_console_output():
+    try:
+        conn = sqlite3.connect(f"{db_name}")
+        c = conn.cursor()
+        c.execute("SELECT * FROM console_output")
+        output = c.fetchall()
+        return output
+    except:
+        print("При получении вывода консоли чтото наебнулось")
     finally:
         conn.commit()
         c.close()

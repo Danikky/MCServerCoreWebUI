@@ -40,13 +40,14 @@
         <form method="post">
             <div class="console-container scroll-container">
                 {% for el in console_output %}
-                    <p class="fonter">{{el}}</p>
+                    <p class="fonter">{{el[0]}}</p>  
+<!-- нужно чтобы при загруске страницы, стразу прокручивалов самый низ консоли -->
                 {% endfor %}
             </div>
-                    <br><input type="text" name="console_input" id="console_input" class="form-control", placeholder="Enter command" required="1"><br>
-                    <input type="submit" class="btn btn-success" value="отправить">
-                    <input type="button" class="btn btn-danger float-end" value="Остановить сервер" onclick="return confirm('Ты натурал?')">
-                    <input type="button" class="btn btn-warning float-end" style="margin-right: 10px;" value="Перезапустить сервер">
+                <br><input type="text" name="console_input" id="console_input" class="form-control", placeholder="Enter command" required="1"><br>
+                <input type="submit" class="btn btn-success" value="отправить">
+                <input type="button" class="btn btn-danger float-end" value="Остановить сервер" onclick="return confirm('Ты натурал?')">
+                <input type="button" class="btn btn-warning float-end" style="margin-right: 10px;" value="Перезапустить сервер">
         </form>
     </div>
 </div>

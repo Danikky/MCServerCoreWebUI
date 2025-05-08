@@ -61,7 +61,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             print(f"Ошибка: {str(e)}", file=sys.stderr)
     
     def console_event_check(self, line: str):
-        if "joined the game" in line: 
+        if "joined the game" in line:
             line_data = line.split() # разделяет строку на список по пробелам
             name = line_data[2].replace("[38;2;255;255;85m", "")
             stmc.reg_player(name)
@@ -89,16 +89,23 @@ server_dir_path = "C:\\Users\\riper\\ToolsUsefull\\MyProgramDev\\CoreServer"
 server = server_manager(server_dir_path)
 
 
+
 # Нужен скрипт - хранитель переменных !!!
 db_name = stmc.db_name
 
-app = Flask("__main__")
-app.secret_key = os.urandom(24)
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app, cors_allowed_origins="*")  # Для разработки разрешаем все источники
 
-# socketio = SocketIO(app)
-# @socketio.on('request_update')
-# def handle_update():
-#     emit('console_update', {'output': server.console_output[-20:]})  # Последние 20 строк
+# @socketio.on('connect')
+# def handle_connect():
+#     emit('console_update', {'console_output': stmc.get_console_output()})
+
+# @socketio.on('request_updates')
+# def handle_updates():
+#     while True:
+#         socketio.sleep(1)  # Обновление каждую секунду
+#         emit('console_update', {'console_output': stmc.get_console_output()})
 
 # Настройка Flask-Login
 login_manager = LoginManager()
@@ -122,6 +129,11 @@ def load_user(user_id):
     if user:
         return User(user[0], user[1])
     return None
+
+# # Маршрут для главной страницы
+# @app.route('/')
+# def index():
+#     return render_template('index.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -173,12 +185,15 @@ def server_console():
     console_output = []
     if request.method == "POST":
         console_input = request.form.get("console_input")
-        server.send_rcon_command(console_input)
         command = request.form.get("command")
         
-        if command != "":
+        if console_input not in [None, "null", ""]:
+            server.send_rcon_command(console_input)
+        
+        if command not in [None, "null", ""]:
             if command == "start":
-                server.start_server()
+                if server.is_server_running() == False:
+                    server.start_server()
             else:
                 server.send_rcon_command(command)
             
@@ -219,11 +234,9 @@ def server_players():
     if request.method == "POST":
         online_players = 0
         username = request.form.get("username")
-        value = request.form.get("value")
-        if "1" in value:
-            stmc.set_status(username, value.replace("1", ""), 1)
-        elif "0" in value:
-            stmc.set_status(username, value.replace("0", ""), 0)
+        command = request.form.get("value")
+        if command not in [None, "null", ""]:
+            server.send_rcon_command(command+" "+username)
         players_data = stmc.get_all_players_data()
         return render_template("server_players.html", players_data=players_data, online_players=online_players)
     else:

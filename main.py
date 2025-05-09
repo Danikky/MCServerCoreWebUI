@@ -88,8 +88,6 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
 server_dir_path = "C:\\Users\\riper\\ToolsUsefull\\MyProgramDev\\CoreServer"
 server = server_manager(server_dir_path)
 
-
-
 # Нужен скрипт - хранитель переменных !!!
 db_name = stmc.db_name
 
@@ -237,6 +235,10 @@ def server_players():
         command = request.form.get("value")
         if command not in [None, "null", ""]:
             server.send_rcon_command(command+" "+username)
+            command = stmc.command_to_param(command)
+            if command:
+                stmc.set_status(username, command[0], command[1])
+                
         players_data = stmc.get_all_players_data()
         return render_template("server_players.html", players_data=players_data, online_players=online_players)
     else:

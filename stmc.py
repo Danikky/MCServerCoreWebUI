@@ -176,6 +176,26 @@ def set_all_offline():
             conn.commit()
             c.close()
             conn.close()
+
+def command_to_param(command):
+    if command == "op":
+        return ["is_op", True]
+    elif command == "deop":
+        return ["is_op", False]
+    elif command == "ban":
+        return ["is_ban", True]
+    elif command == "pardon":
+        return ["is_ban", False]
+    elif command == "whitelist add":
+        return ["is_whitelist", True]
+    elif command == "whitelist remove":
+        return ["is_whitelist", False]
+    elif command == "blacklist add":
+        return ["is_blacklist", True]
+    elif command == "blacklist remove":
+        return ["is_blacklist", False]
+    else:
+        return False
         
 def get_properties_data():
     result = []

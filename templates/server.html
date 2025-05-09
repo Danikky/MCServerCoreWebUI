@@ -1,22 +1,10 @@
 {% extends 'base.html' %}
 
-{% block title %}Консоль сервера{% endblock %}
+{% block title %}
+Консоль сервера
+{% endblock %}
 
 {% block body %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-<!-- <script>
-    const socket = io();
-
-    // Запрос обновлений при подключении
-    socket.on('connect', () => {
-        socket.emit('request_updates');
-    });
-
-    // Обработчик обновлений
-    socket.on('console_update', (data) => {
-        document.getElementById('console-output').textContent = data.console_output;
-    });
-</script> -->
 <style>
     .console-container {
         background-color: #1d1d1d; /* Темный фон контейнера */
@@ -51,26 +39,57 @@
     <div class="alert alert-info">
         <h1 class="text-center">Console</h1>
         <form method="post">
-            <div class="console-container scroll-container">
-                {% for el in console_output %}
-                    <p class="fonter">{{el[0]}}</p>  
-<!-- нужно чтобы при загруске страницы, стразу прокручивалов самый низ консоли -->
-                {% endfor %}
+            <div id="console-output" class="console-container scroll-container">
+                <!-- Контент будет обновляться через WebSocket -->
             </div>
-                {% if is_server_run %}
-                    <br><input type="text" name="console_input" id="console_input" class="form-control", placeholder="Enter command"><br>
-                    <input type="submit" class="btn btn-success" value="отправить">
-                {% else %}
-                    <h1>Сервер выключен</h1>
-                {% endif %}
+            {% if is_server_run %}
+                <br><input type="text" name="console_input" id="console_input" class="form-control", placeholder="Enter command"><br>
+                <input type="submit" class="btn btn-success" value="отправить">
+            {% else %}
+                <h1>Сервер выключен</h1>
+            {% endif %}
 
-                {% if is_server_run %}
-                    <input type="submit" name="command" class="btn btn-danger float-end" value="restart">
-                    <input type="submit" name="command" class="btn btn-warning float-end" style="margin-right: 10px;" value="stop">
-                {% else %}
-                    <input type="submit" name="command" class="btn btn-success float-end" value="start">
-                {% endif %}
+            {% if is_server_run %}
+                <input type="submit" name="command" class="btn btn-danger float-end" value="restart">
+                <input type="submit" name="command" class="btn btn-warning float-end" style="margin-right: 10px;" value="stop">
+            {% else %}
+                <input type="submit" name="command" class="btn btn-success float-end" value="start">
+            {% endif %}
         </form>
     </div>
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const socket = io('/server');  // Указываем Namespace
+
+        // Обработка новых сообщений
+        socket.on('console_update', function(data) {
+            const consoleDiv = document.getElementById('console-output');
+            const newLine = document.createElement('p');
+            newLine.className = 'fonter';
+            newLine.textContent = data.line;
+            consoleDiv.appendChild(newLine);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight; // Автоскролл
+        });
+
+        // Загрузка истории при открытии
+        fetch('/get_console_history')
+            .then(response => response.json())
+            .then(data => {
+                const consoleDiv = document.getElementById('console-output');
+                data.history.forEach(line => {
+                    const p = document.createElement('p');
+                    p.className = 'fonter';
+                    p.textContent = line;
+                    consoleDiv.appendChild(p);
+                });
+                consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            });
+
+        // Обработка ошибок
+        socket.on('connect_error', (err) => {
+            console.error('Ошибка подключения:', err);
+        });
+    });
+</script>
 {% endblock %}

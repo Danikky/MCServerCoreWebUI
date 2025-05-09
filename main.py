@@ -13,12 +13,20 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import stmc
 
 stmc.init_db()
+
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+
 class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def __init__(self, path):
         # self._kill_processes_locking_file(os.path.join(path, "world", "session.lock"))
         stmc.set_all_offline()
         self.path = path
         self.start_server()
+        
     
     def start_server(self):
         
@@ -29,7 +37,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
-            bufsize=1,
+            bufsize=0,
             universal_newlines=True
         )
 
@@ -46,9 +54,15 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             if not line and self.proccess.poll() is not None:
                 break
             if line:
-                self.console_event_check(line)
-                print(line.strip())
                 stmc.add_line(line)
+                self.console_event_check(line)
+                socketio.start_background_task(
+                socketio.emit, 
+                'console_update', 
+                {'line': line.strip()}, 
+                namespace='/server'
+            )    # Отправка события
+                print(line)  # Для отладки
     
     def send_rcon_command(self, command: str):
         try:
@@ -88,22 +102,12 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
 server_dir_path = "C:\\Users\\riper\\ToolsUsefull\\MyProgramDev\\CoreServer"
 server = server_manager(server_dir_path)
 
+@socketio.on('connect', namespace='/server')
+def handle_connect():
+    print("Клиент подключился к WebSocket")
+
 # Нужен скрипт - хранитель переменных !!!
 db_name = stmc.db_name
-
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, cors_allowed_origins="*")  # Для разработки разрешаем все источники
-
-# @socketio.on('connect')
-# def handle_connect():
-#     emit('console_update', {'console_output': stmc.get_console_output()})
-
-# @socketio.on('request_updates')
-# def handle_updates():
-#     while True:
-#         socketio.sleep(1)  # Обновление каждую секунду
-#         emit('console_update', {'console_output': stmc.get_console_output()})
 
 # Настройка Flask-Login
 login_manager = LoginManager()
@@ -127,11 +131,6 @@ def load_user(user_id):
     if user:
         return User(user[0], user[1])
     return None
-
-# # Маршрут для главной страницы
-# @app.route('/')
-# def index():
-#     return render_template('index.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -166,7 +165,6 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
-# Главная страница (Вход, Оперативные операции, info)
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -195,13 +193,18 @@ def server_console():
             else:
                 server.send_rcon_command(command)
             
-        console_output = stmc.get_console_output()
         is_server_run = server.is_server_running()
-        return render_template("server.html", console_output=console_output, is_server_run=is_server_run)
+        return render_template("server.html", is_server_run=is_server_run)
     else:
-        console_output = stmc.get_console_output()
         is_server_run = server.is_server_running()
-        return render_template("server.html", console_output=console_output, is_server_run=is_server_run)
+        return render_template("server.html", is_server_run=is_server_run)
+
+# Новый маршрут для получения истории консоли
+@app.route('/get_console_history')
+def get_console_history():
+    console_data = stmc.get_console_output()
+    history = [line[0] for line in console_data]
+    return jsonify({'history': history})
 
 # Настройка сервера
 @app.route("/server/settings", methods=['GET', 'POST'])
@@ -260,5 +263,6 @@ def server_map():
 
 # Для безопастного импорта файла(как библиотека) + run
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True) # НЕ ТРОГАТЬ ПОКА РАБОТАЕТ!!!
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    # app.run(host='0.0.0.0', port=5000, debug=True) # НЕ ТРОГАТЬ ПОКА РАБОТАЕТ!!!
     

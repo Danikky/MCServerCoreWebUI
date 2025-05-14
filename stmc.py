@@ -111,7 +111,7 @@ def get_online():
     try:
         conn = sqlite3.connect(f"{db_name}")
         c = conn.cursor()
-        c.execute("SELECT * FROM players WHERE is_online = True")
+        c.execute("SELECT * FROM players WHERE is_online = 1")
         online = c.fetchall()
         if online != None:
             return online
@@ -183,9 +183,9 @@ def command_to_param(command):
     elif command == "deop":
         return ["is_op", False]
     elif command == "ban":
-        return ["is_ban", True]
+        return ["is_banned", True]
     elif command == "pardon":
-        return ["is_ban", False]
+        return ["is_banned", False]
     elif command == "whitelist add":
         return ["is_whitelist", True]
     elif command == "whitelist remove":

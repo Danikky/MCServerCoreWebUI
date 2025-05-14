@@ -12,6 +12,7 @@ import time
 from werkzeug.security import generate_password_hash, check_password_hash
 import stmc
 
+
 stmc.init_db()
 
 
@@ -233,7 +234,7 @@ def server_files():
 @login_required
 def server_players():
     if request.method == "POST":
-        online_players = 0
+        online_players = len(stmc.get_online())
         username = request.form.get("username")
         command = request.form.get("value")
         if command not in [None, "null", ""]:
@@ -245,7 +246,7 @@ def server_players():
         players_data = stmc.get_all_players_data()
         return render_template("server_players.html", players_data=players_data, online_players=online_players)
     else:
-        online_players = 0
+        online_players = len(stmc.get_online())
         players_data = stmc.get_all_players_data()
         return render_template("server_players.html", players_data=players_data, online_players=online_players)
 

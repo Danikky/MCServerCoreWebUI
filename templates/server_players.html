@@ -47,7 +47,16 @@ players
                 </form>
             </div>
         {% endif%}
-        <!-- Дабавить список забаненых, белый скписок, черный список, зареганы(оффлайн),список операторав -->
+        {% if el[4] == 1 %}
+            <h1>Забанены: </h1>
+            <div class="alert alert-primary">  <!--el[1] это имя-->
+                <h2>{{el[1]}}</h2> 
+                <form method="post">
+                    <input type="hidden" name="username" value={{el[1]}}>
+                    <button class="btn btn-danger" name="value" value="pardon">Разбанить</button>
+                </form>
+            </div>
+        {% endif%}
     {% endfor %}
 </div>
 

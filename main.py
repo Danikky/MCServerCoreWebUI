@@ -25,9 +25,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def __init__(self, path):
         # self._kill_processes_locking_file(os.path.join(path, "world", "session.lock"))
         stmc.set_all_offline()
-        self.path = path
-        self.start_server()
-        
+        self.path = path 
     
     def start_server(self):
         
@@ -224,10 +222,11 @@ def server_settings():
 @app.route("/server/files", methods=["POST", "GET"])
 @login_required
 def server_files():
+    dir_list = os.listdir(server_dir_path)
     if request.method == "POST":
-        return render_template("server_files.html")
+        return render_template("server_files.html", dir_list=dir_list)
     else:
-        return render_template("server_files.html")
+        return render_template("server_files.html", dir_list=dir_list)
 
 # Управление игроками (Кто играет realtime, Кто заходил, Права, Баны, Вишлист)
 @app.route("/server/players", methods=["POST", "GET"])

@@ -5,7 +5,25 @@
 server files
 {% endblock %}
 
-
-
 {% block body %}
+
+<div class="alert alert-info">
+    <h1>Файлы:</h1>
+    {% for el in dir_list %}
+        <div class="alert alert-primary">
+            <form method="post">
+                <div class="col-md-2 mb-3">
+                    <input type="text" name="{{el}}" class="form-control" placeholder="{{el}}">
+                    <button class="btn btn-danger" name="command" value="Del">Del</button>
+                    <!-- Превращает название  в поле ввода: -->
+                    <button class="btn btn-warning" name="command" value="Rename">Rename</button>
+                    <!-- Переход в директорию -->> 
+                    <button class="btn btn-success" name="command" value="Go">Go</button>
+                </div>     
+            </form>
+        </div>
+    {% endfor %}
+    <h1>Создать файл:</h1>
+</div>
+
 {% endblock %}

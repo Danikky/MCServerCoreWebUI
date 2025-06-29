@@ -12,9 +12,13 @@ import time
 from werkzeug.security import generate_password_hash, check_password_hash
 import stmc
 
+# Задачи:
+# - Сделать код более читаемый
+# - организовать работу с множеством ядер одновременно
+# - Доделать управление файлами сервера
+# - Доделать *real-time* консоль
 
 stmc.init_db()
-
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'

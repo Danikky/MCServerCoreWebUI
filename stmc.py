@@ -8,8 +8,8 @@ import subprocess
 import threading
 from werkzeug.security import generate_password_hash, check_password_hash
 
+server_dir_path = r"C:\Users\riper\ToolsUsefull\MyProgramDev\CoreServer"
 db_name = "DataBase.db"
-properties_path = "C:\\Users\\riper\\ToolsUsefull\\MyProgramDev\\CoreServer\\server.properties"
 
 def init_db():
     conn = sqlite3.connect(f"{db_name}")
@@ -19,13 +19,9 @@ def init_db():
     (id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL
-    )""")
+    )
+    """)
     
-    # Статусы игрока будут браться из файлов сервера, там списки забаненых и т.д,
-    # Онлайн игрока будет ставиться так: Скрипт проверяет консоль- если есть сообщение о присоединении игрока
-    # ставит ему is_online true, и регистрирует если он первый раз зашел,
-    # которе нужен крутой мониторющий консоль и файлы скрипт. и пару моментов с несоответствиями проработать
-    # Нужно это всё для вкладки players и отображения онлайна. я сам придумал, хз как ещё можно
     c.execute("""CREATE TABLE IF NOT EXISTS players
     (id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
@@ -36,11 +32,13 @@ def init_db():
     is_vip BOOLEAN DEFAULT FALSE,        
     is_whitelist BOOLEAN DEFAULT FALSE,
     is_blacklist BOOLEAN DEFAULT FALSE
-    )""")
+    )
+    """)
     
     c.execute(""" CREATE TABLE IF NOT EXISTS console_output (
     line TEXT NOT NULL
-    )""")
+    )
+    """)
     
     conn.commit()
     c.close()
@@ -199,6 +197,7 @@ def command_to_param(command):
         
 def get_properties_data():
     result = []
+    properties_path = server_dir_path + "server.properties"
     with open(properties_path, 'r', encoding='utf-8') as f:
         for line in f:
             # Убираем пробелы и пропускаем пустые строки/комментарии
@@ -218,6 +217,7 @@ def update_properties(key, value):
     # Сюда путь к файлу с настройками (НЕ ЗАБЫТЬ \\ ВМЕСТО \)
     updated = False
     new_lines = []
+    properties_path = server_dir_path + "server.properties"
     with open(properties_path, 'r', encoding='utf-8') as f:
         for line in f:
             # Сохраняем комментарии и пустые строки как есть

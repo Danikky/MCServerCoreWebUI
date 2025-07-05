@@ -102,7 +102,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                 continue
         return False
 
-server_dir_path = "C:\\Users\\riper\\ToolsUsefull\\MyProgramDev\\CoreServer"
+server_dir_path = r"C:\Users\riper\ToolsUsefull\MyProgramDev\CoreServer"
 server = server_manager(server_dir_path)
 
 @socketio.on('connect', namespace='/server')
@@ -177,7 +177,7 @@ def index():
 def about():
     return render_template("about.html")
 
-# Управление (Консоль, Данные, Производительность, Игроки) (Fast data)
+# Сервер (Консоль, Данные, Производительность, Игроки, управление) (Fast data)
 @app.route("/server", methods=["POST", "GET"])
 @login_required
 def server_console():

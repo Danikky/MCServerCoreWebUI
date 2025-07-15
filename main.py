@@ -43,8 +43,17 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             self.core = server_data[2]
             self.path = server_data[3]
     
-    def get_repo(self, folder: str):
-        folder_path = self.path + folder
+    def get_folder(self):
+        folder_path = self.path
+        try:
+            if not os.path.isdir(folder_path):
+                return []
+            return [os.path.join(folder_path, item) for item in os.listdir(folder_path)]
+        except Exception:
+            return []
+    
+    def get_cores(self):
+        folder_path = self.path + r"/cores"
         try:
             if not os.path.isdir(folder_path):
                 return []
@@ -202,7 +211,7 @@ def servers():
         global server
         server = server_manager(id)
     else:
-        return render_template("create_server_page.html", server_data=servers_data)
+        return render_template("servers.html", server_data=servers_data)
 
 # Страница создания нового сервера
 @app.route("/servers/create_server_page", methods=["POST", "GET"])
@@ -210,10 +219,10 @@ def create_server_page():
     if request.method == "POST":
         name = request.form.get("name")
         core = request.form.get("core")
-        global server
         stmc.create_server()
     else:
-        return render_template("create_server_page.html")
+        cores = server.get_cores()
+        return render_template("create_server_page.html", cores=cores)
 
 # Сервер (Консоль, Данные, Производительность, Игроки, управление) (Fast data)
 @app.route("/server/<int:id>", methods=["POST", "GET"])

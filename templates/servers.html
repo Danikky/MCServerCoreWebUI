@@ -6,8 +6,22 @@ Servers
 
 {% block body %}
 <h1>
-    Списоке серверов *название + ядро + кнопка выбрать запустить* + "переадресация на сервер"
-    Создать новый *кнопка с переадресацией на create_server.html*
+    <div class="alert alert-info">
+    <h1>Список серверов: </h1>
+    {% for el in servers_data %} <!--el проходиться по всем игрокам на сервере-->
+        <div class="alert alert-primary">  <!--el[1] это имя-->
+            <h2>{{el[1]}}</h2> 
+            <p><b>id:{{el[0]}} | Core: {{el[2]}} | Path:{{el[3]}}</b></p>
+            <form method="post">
+            <a href="/server/{{el[0]}}" class="nav-link active">
+                Запустить
+            </a>
+        </div>
+    {% endfor %}
+        <a href="/servers/create_server_page" class="btn btn-success">
+            Создать сервер
+        </a>
+</div>
 </h1>
 <img class="background" src="{{ url_for('static', filename='/res/img1.png') }}" alt="minecraft(main-link)">
 {% endblock %}

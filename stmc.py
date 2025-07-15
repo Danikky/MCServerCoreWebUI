@@ -66,9 +66,8 @@ def create_server(name, core):
     conn.commit()
     c.close()
     conn.close()
+    create_server_folder(name)
     return id[0]
-    
-    
 
 def get_server_data(id):
     conn = sqlite3.connect(f"{db_name}")
@@ -80,7 +79,6 @@ def get_server_data(id):
     conn.close()
     return server_data
     
-
 # Зашёл первый раз (скрипт проверил)
 def reg_player(username):
     try:
@@ -213,6 +211,3 @@ def get_servers_data():
         conn.commit()
         c.close()
         conn.close()
-
-
-create_server_folder("loh_nah")

@@ -1,15 +1,69 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+</head>
+<style>
+    ul {list-style-type: none}
+</style>
+<body>
+    <header class="d-flex justify-content-center py-3">
+        <ul class="nav nav-pills">
+            {% if id == None %}
+                <li class="nav-item">
+                    <a href="/servers" class="nav-link {% if request.path == '/servers' %}active{% endif %}" {% if request.path == '/servers' %}aria-current="page"{% endif %}>
+                        Выбрать Сервер
+                    </a>
+                </li>
+            {% else %}
+                <li class="nav-item">
+                    <a href="/" class="fixed-left nav-link {% if request.path == '/' %}active{% endif %}" {% if request.path == '/' %}aria-current="page"{% endif %}>
+                        На главную
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/server" class="nav-link {% if request.path == '/server' %}active{% endif %}" {% if request.path == '/server' %}aria-current="page"{% endif %}>
+                        Сервер
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/server/players" class="nav-link {% if request.path == '/server/players' %}active{% endif %}" {% if request.path == '/server/players' %}aria-current="page"{% endif %}>
+                        Игроки
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/server/settings" class="nav-link {% if request.path == '/server/settings' %}active{% endif %}" {% if request.path == '/server/settings' %}aria-current="page"{% endif %}>
+                        Настройки
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/server/files" class="nav-link {% if request.path == '/server/files' %}active{% endif %}" {% if request.path == '/server/files' %}aria-current="page"{% endif %}>
+                        Файлы
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/server/sqltables" class="nav-link {% if request.path == '/server/sqltables' %}active{% endif %}" {% if request.path == '/server/sqltables' %}aria-current="page"{% endif %}>
+                        База данных
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/server/map" class="nav-link {% if request.path == '/server/map' %}active{% endif %}" {% if request.path == '/server/map' %}aria-current="page"{% endif %}>
+                        Карта
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </header>
 
-{% block title %}
-Home
-{% endblock %}
-
-{% block body %}
-<!-- <h2 class="text">Minecraft Server CodeCrazeUniverse<sup>inc.</sup></h2> -->
- 
-{% if current_user.is_authenticated %}
-{% else %}
-    <img class="background" src="{{ url_for('static', filename='/res/img1.png') }}" alt="minecraft(main-link)">
-{% endif %}
-
-{% endblock %}
+    {% block body %}
+    {% endblock %}
+    <div>
+        <img class="background" src="{{ url_for('static', filename='/res/img7.png') }}" alt="minecraft(main-link)">
+    </div>
+</body>
+</html>

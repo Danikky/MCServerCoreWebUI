@@ -15,66 +15,71 @@ def init_db():
     conn = sqlite3.connect(f"{db_name}")
     c = conn.cursor()
     
-    c.execute("""CREATE TABLE IF NOT EXISTS users
-    (id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL
-    )
-    """)
+    c.execute("""CREATE TABLE IF NOT EXISTS servers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    core TEXT NOT NULL,
+    path TEXT NOT NULL
+    )""")
     
-    c.execute("""CREATE TABLE IF NOT EXISTS players
-    (id INTEGER PRIMARY KEY AUTOINCREMENT,
+    c.execute("""CREATE TABLE IF NOT EXISTS players (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     is_online BOOLEAN DEFAULT FALSE,
     is_op BOOLEAN DEFAULT FALSE,
     is_banned BOOLEAN DEFAULT FALSE,
     is_ip_banned BOOLEAN DEFAULT FALSE,
-    is_vip BOOLEAN DEFAULT FALSE,        
+    is_vip BOOLEAN DEFAULT FALSE,
     is_whitelist BOOLEAN DEFAULT FALSE,
-    is_blacklist BOOLEAN DEFAULT FALSE
-    )
-    """)
+    is_blacklist BOOLEAN DEFAULT FALSE,
+    server_id INTEGER NOT NULL,
+    FOREIGN KEY (server_id) REFERENCES servers(id)
+    )""")
     
     c.execute(""" CREATE TABLE IF NOT EXISTS console_output (
-    line TEXT NOT NULL
-    )
-    """)
+    line TEXT NOT NULL,
+    server_id INTEGER NOT NULL,
+    FOREIGN KEY (server_id) REFERENCES servers(id)
+    )""")
     
     conn.commit()
     c.close()
     conn.close()
 
-# Временный скрипт для создания администратора    
-def firts_time_admin():
-    conn = sqlite3.connect(f"{db_name}")
-    c = conn.cursor()
-    admin_password = generate_password_hash('123') # пароль админа
-    c.execute("INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)", ("admin", admin_password))
-    conn.commit()
-    c.close()
-    conn.close()
-    
-def register(username, password):
-    conn = sqlite3.connect(f"{db_name}")
-    c = conn.cursor()
-    c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
-    conn.commit()
-    c.close()
-    conn.close()
-
-def login(username):
+def create_server_folder(folder_name: str) -> bool:
     try:
-        conn = sqlite3.connect(f"{db_name}")
-        c = conn.cursor()
-        c.execute("SELECT * FROM users WHERE username = ?", (username,))
-        user = c.fetchone()
-        return user
+        path = "servers/" + folder_name
+        os.makedirs(path, exist_ok=True)
+    except Exception as e:
+        print(f"Непредвиденная ошибка при создании папки: {e}")
+
+def create_server(name, core):
+    path = "servers/" + name
+    conn = sqlite3.connect(f"{db_name}")
+    c = conn.cursor()
+    try:
+        c.execute("INSERT INTO servers (name, core, path)", (name, core, path))
+        c.execute("SELECT id FROM servers WHERE name = ?", (name,))
+        id = c.fetchone()
     except:
-        return None
-    finally:
-        conn.commit()
-        c.close()
-        conn.close()
+        print("При создании сервера чтото пошло не так")
+    conn.commit()
+    c.close()
+    conn.close()
+    return id[0]
+    
+    
+
+def get_server_data(id):
+    conn = sqlite3.connect(f"{db_name}")
+    c = conn.cursor()
+    c.execute("SELECT * FROM servers WHERE id = ?", (id,))
+    server_data = c.fetchall()
+    conn.commit()
+    c.close()
+    conn.close()
+    return server_data
+    
 
 # Зашёл первый раз (скрипт проверил)
 def reg_player(username):
@@ -148,11 +153,11 @@ def add_line(line):
         c.close()
         conn.close()
 
-def get_console_output():
+def get_console_output(server_id):
     try:
         conn = sqlite3.connect(f"{db_name}")
         c = conn.cursor()
-        c.execute("SELECT * FROM console_output")
+        c.execute("SELECT * FROM console_output WHERE server_id = ?", (server_id))
         output = c.fetchall()
         return output
     except:
@@ -195,53 +200,19 @@ def command_to_param(command):
     else:
         return False
         
-def get_properties_data():
-    result = []
-    properties_path = server_dir_path + "server.properties"
-    with open(properties_path, 'r', encoding='utf-8') as f:
-        for line in f:
-            # Убираем пробелы и пропускаем пустые строки/комментарии
-            stripped = line.strip()
-            if not stripped or stripped[0] in ('#', '!'):
-                continue
-            # Разделяем ключ и значение
-            if '=' in stripped:
-                key, value = stripped.split('=', 1)
-                result.append([
-                    key.strip(), 
-                    value.strip()
-                ])
-    return result
-        
-def update_properties(key, value):
-    # Сюда путь к файлу с настройками (НЕ ЗАБЫТЬ \\ ВМЕСТО \)
-    updated = False
-    new_lines = []
-    properties_path = server_dir_path + "server.properties"
-    with open(properties_path, 'r', encoding='utf-8') as f:
-        for line in f:
-            # Сохраняем комментарии и пустые строки как есть
-            if line.strip().startswith(('#', '!')) or len(line.strip()) == 0:
-                new_lines.append(line)
-                continue
-            # Разделяем ключ и значение с сохранением разделителя
-            if '=' in line:
-                key_part, value_part = line.split('=', 1)
-                current_key = key_part.strip()
-                if current_key == key:
-                    # Сохраняем оригинальное форматирование
-                    separator = line[len(key_part.rstrip()):].split('=', 1)[0]
-                    new_line = f"{key}={value}\n"
-                    new_lines.append(new_line)
-                    updated = True
-                else:
-                    new_lines.append(line)
-            else:
-                new_lines.append(line)
-    if not updated:
-        raise ValueError(f"Ключ '{key}' не найден в файле")
-    
-    # Перезаписываем файл
-    with open(properties_path, 'w', encoding='utf-8') as f:
-        f.writelines(new_lines)
-    return True
+def get_servers_data():
+    try:
+        conn = sqlite3.connect(f"{db_name}")
+        c = conn.cursor()
+        c.execute("SELECT * FROM servers")
+        servers_data = c.fetchall()
+        return servers_data
+    except:
+        print("При получении servers_data что-то пошло не так")
+    finally:
+        conn.commit()
+        c.close()
+        conn.close()
+
+
+create_server_folder("loh_nah")

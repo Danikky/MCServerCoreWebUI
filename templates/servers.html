@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Servers
+{% endblock %}
+
+{% block body %}
+<h1>
+    Списоке серверов *название + ядро + кнопка выбрать запустить* + "переадресация на сервер"
+    Создать новый *кнопка с переадресацией на create_server.html*
+</h1>
+<img class="background" src="{{ url_for('static', filename='/res/img1.png') }}" alt="minecraft(main-link)">
+{% endblock %}

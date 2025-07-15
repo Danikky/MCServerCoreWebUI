@@ -204,7 +204,7 @@ def servers():
     else:
         return render_template("create_server_page.html", server_data=servers_data)
 
-# Выбор сервера + новый
+# Страница создания нового сервера
 @app.route("/servers/create_server_page", methods=["POST", "GET"])
 def create_server_page():
     if request.method == "POST":

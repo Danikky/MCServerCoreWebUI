@@ -28,7 +28,6 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-
 class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def __init__(self, id):
         # self._kill_processes_locking_file(os.path.join(path, "world", "session.lock"))
@@ -309,4 +308,3 @@ def server_map(id):
 if __name__ == "__main__":
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
     # app.run(host='0.0.0.0', port=5000, debug=True) # НЕ ТРОГАТЬ ПОКА РАБОТАЕТ!!!
-    

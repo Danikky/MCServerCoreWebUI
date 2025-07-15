@@ -12,6 +12,9 @@ import time
 from werkzeug.security import generate_password_hash, check_password_hash
 import stmc
 
+# Направление сайта - 
+# web-GUI для управлением сервером
+
 # Задачи:
 # - Сделать код более читаемый
 # - организовать работу с множеством ядер одновременно

@@ -24,6 +24,8 @@ import stmc
 # - Доделать *real-time* консоль
 # - Автоматизировать выбор директорий
 # - Сделать автокомпиляюцию ядра
+# - Навигация в файлах сервера
+# - Удаление и создание файлов через files_page
 
 stmc.init_db()
 app = Flask(__name__)
@@ -289,14 +291,14 @@ def server_files_to(path):
             if command == "open":
                 pass
             if command == "rename":
-                stmc.rename(item, text)
+                stmc.rename(str(path.replace("-", "\\"))+"\\"+item, text)
             if command == "delete":
-                stmc.delete(item)
+                stmc.delete(str(path.replace("-", "\\"))+"\\"+item)
             if command == "make":
                 if "." in item:
-                    stmc.make(item, True)
+                    stmc.make(str(path.replace("-", "\\"))+"\\"+item, False)
                 else:
-                    stmc.make(item, False)
+                    stmc.make(str(path.replace("-", "\\"))+"\\"+item, True)
         return render_template("server_files.html", dir_list=dir_list, path=path)
     else:
         return render_template("server_files.html", dir_list=dir_list, path=path)

@@ -184,7 +184,7 @@ def return_main_dir():
     return script_path
 
 def rename(folder_path, new_name):  # Указать пусть, относительно self.path
-    path = os.path.join(return_main_dir() + "\server", folder_path)
+    path = os.path.join(return_main_dir(), folder_path)
     try:
         if not os.path.exists(path):
             raise FileNotFoundError(f"Объект не найден: {path}")
@@ -199,7 +199,7 @@ def rename(folder_path, new_name):  # Указать пусть, относит�
         return False
     
 def delete(folder_path): # Указать пусть, относительно self.path
-    path = os.path.join(return_main_dir() + "\server", folder_path)
+    path = os.path.join(return_main_dir(), folder_path)
     try:
         if not os.path.exists(path):
             raise FileNotFoundError(f"Объект не найден: {path}")
@@ -212,15 +212,14 @@ def delete(folder_path): # Указать пусть, относительно s
     except Exception as e:
         print(f"Ошибка удаления: {str(e)}")
         return False
-
     
 def get_dir(folder_path): # Указать пусть, относительно self.path
-    dir_path = os.path.join(return_main_dir() + "\server", folder_path)
+    dir_path = os.path.join(return_main_dir(), folder_path)
     dir_list = os.listdir(dir_path)
     return dir_list
     
 def make(folder_path, is_directory): # Указать пусть, относительно self.path
-    path = os.path.join(return_main_dir() + "\server", folder_path)
+    path = os.path.join(return_main_dir(), folder_path)
     try:
         if os.path.exists(path):
             raise FileExistsError(f"Объект уже существует: {path}")
@@ -234,7 +233,7 @@ def make(folder_path, is_directory): # Указать пусть, относит
             pass
         return True
     except:
-        print("Ошибка при создании файла/директории")
+        print(f"Ошибка при создании файла/директории({path})")
 
 def sort_dir(dir_list): # Сортирует директории по типу - папки>файлы
     new_list = []

@@ -1,6 +1,5 @@
 {% extends 'base.html' %}
 
-
 {% block title %}
 File manager
 {% endblock %}
@@ -10,9 +9,8 @@ File manager
     <div class="table">
         <h1>Файлы:</h1>
         <form method="post">
-            <input type="hidden" name="item" value="{{el}}">
             <div class="tablet">
-                <br><input type="text" name="text" id="text" class="form-control", placeholder="Enter new file/dir name"><br>
+                <br><input type="text" name="item" id="item" class="form-control", placeholder="Enter new file/dir name"><br>
                 <button class="btn btn-success" name="command" value="make">Создать папку/файл</button>
             </div>
         </form>

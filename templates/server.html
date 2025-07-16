@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block title %}
-Консоль сервера
+Control panel
 {% endblock %}
 
 {% block body %}
@@ -37,7 +37,11 @@
 
 <div class="container-fluid vh-100 m-0" style="padding-left: 5%; padding-right: 5%;">
     <div class="alert alert-info">
-        <h1 class="text-center">Console</h1>
+        {% if is_server_run %}
+            <h1 class="text-center">Console</h1>
+        {% else %}
+            <h1 class="text-center">Console (Сервер выключен)</h1>
+        {% endif %}
         <form method="post">
             <div id="console-output" class="console-container scroll-container">
                 <!-- Контент будет обновляться через WebSocket -->
@@ -45,15 +49,12 @@
             {% if is_server_run %}
                 <br><input type="text" name="console_input" id="console_input" class="form-control", placeholder="Enter command"><br>
                 <input type="submit" class="btn btn-success" value="отправить">
-            {% else %}
-                <h1>Сервер выключен</h1>
-            {% endif %}
-
-            {% if is_server_run %}
                 <input type="submit" name="command" class="btn btn-danger float-end" value="restart">
                 <input type="submit" name="command" class="btn btn-warning float-end" style="margin-right: 10px;" value="stop">
             {% else %}
-                <input type="submit" name="command" class="btn btn-success float-end" value="start">
+                <div class="row">
+                    <input type="submit" name="command" class="btn btn-success float-end" style="margin-right: 10px;" value="start">
+                </div>
             {% endif %}
         </form>
     </div>

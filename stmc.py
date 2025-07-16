@@ -182,6 +182,22 @@ def return_main_dir():
         script_path = os.path.dirname(os.path.abspath(__file__))
     return script_path
 
+def rename_dir(folder_path, new_name):  # Указать пусть, относительно self.path
+    dir_path = os.path.join(return_main_dir(), folder_path)
+    # Переименовывает файл/директорию
+    
+def del_dir(folder_path): # Указать пусть, относительно self.path
+    dir_path = os.path.join(return_main_dir(), folder_path)
+    # Удаляет файл/директорию
+    
+def get_dir(folder_path): # Указать пусть, относительно self.path
+    dir_path = os.path.join(return_main_dir(), folder_path)
+    # Возвращает список файлов/директорий
+    
+def make_dir(folder_path): # Указать пусть, относительно self.path
+    dir_path = os.path.join(return_main_dir(), folder_path)
+    # создаёт директорию/файл
+
 def command_to_param(command):
     if command == "op":
         return ["is_op", True]

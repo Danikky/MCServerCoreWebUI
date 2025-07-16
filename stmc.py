@@ -183,19 +183,21 @@ def return_main_dir():
     return script_path
 
 def rename_dir(folder_path, new_name):  # Указать пусть, относительно self.path
-    dir_path = os.path.join(return_main_dir(), folder_path)
+    dir_path = os.path.join(return_main_dir() + "\server", folder_path)
     # Переименовывает файл/директорию
     
 def del_dir(folder_path): # Указать пусть, относительно self.path
-    dir_path = os.path.join(return_main_dir(), folder_path)
+    dir_path = os.path.join(return_main_dir() + "\server", folder_path)
     # Удаляет файл/директорию
     
 def get_dir(folder_path): # Указать пусть, относительно self.path
-    dir_path = os.path.join(return_main_dir(), folder_path)
+    dir_path = os.path.join(return_main_dir() + "\server", folder_path)
+    dir_list = os.listdir(dir_path)
+    return dir_list
     # Возвращает список файлов/директорий
     
 def make_dir(folder_path): # Указать пусть, относительно self.path
-    dir_path = os.path.join(return_main_dir(), folder_path)
+    dir_path = os.path.join(return_main_dir() + "\server", folder_path)
     # создаёт директорию/файл
 
 def command_to_param(command):

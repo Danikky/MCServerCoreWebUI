@@ -249,7 +249,6 @@ def server_console():
                     server.start_server()
             else:
                 server.send_rcon_command(command)
-
         is_server_run = server.is_server_running()
         return render_template("server.html", is_server_run=is_server_run)
     else:
@@ -282,6 +281,19 @@ def server_settings():
 def server_files():
     dir_list = os.listdir(server.path)
     if request.method == "POST":
+        command = request.form.get("command")
+        item = request.form.get("item")
+        text = request.form.get("text")
+        if command not in [None, "null", ""]:
+            if command == "open":
+                if "." not in item:
+                    dir_list = stmc.get_dir(item)
+            if command == "rename":
+                stmc.rename_dir(item, text)
+            if command == "delete":
+                stmc.del_dir(item)
+            if command == "make":
+                stmc.make_dir(item)
         return render_template("server_files.html", dir_list=dir_list)
     else:
         return render_template("server_files.html", dir_list=dir_list)
@@ -299,7 +311,6 @@ def server_players():
             command = stmc.command_to_param(command)
             if command:
                 stmc.set_status(username, command[0], command[1])
-                
         players_data = stmc.get_all_players_data()
         return render_template("server_players.html", players_data=players_data, online_players=online_players)
     else:

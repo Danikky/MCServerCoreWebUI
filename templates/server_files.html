@@ -6,24 +6,23 @@ File manager
 {% endblock %}
 
 {% block body %}
-
 <div class="alert alert-info">
-    <h1>Файлы:</h1>
+    <div class="table">
+        <h1>Файлы:</h1>
+        <button class="btn btn-success" name="command" value="make">Создать файл</button>
+        <button class="btn btn-success" name="command" value="make">Создать папку</button>
+    </div>
     {% for el in dir_list %}
         <div class="alert alert-primary">
             <form method="post">
-                <div class="col-md-2 mb-3">
-                    <input type="text" name="{{el}}" class="form-control" placeholder="{{el}}">
-                    <button class="btn btn-danger" name="command" value="Del">Del</button>
-                    <!-- Превращает название  в поле ввода: -->
-                    <button class="btn btn-warning" name="command" value="Rename">Rename</button>
-                    <!-- Переход в директорию -->> 
-                    <button class="btn btn-success" name="command" value="Go">Go</button>
-                </div>     
+                <div>
+                    <input type="hidden" name="item" value="{{el}}">
+                    <button class="btn btn-success" name="command" value="open">{{el}}</button>
+                    <button class="btn btn-warning" name="command" value="rename">Rename</button>
+                    <button class="btn btn-danger" name="command" value="delete">Delete</button>
+                </div>
             </form>
         </div>
     {% endfor %}
-    <h1>Создать файл:</h1>
 </div>
-
 {% endblock %}

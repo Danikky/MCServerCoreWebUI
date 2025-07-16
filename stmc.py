@@ -247,6 +247,19 @@ def sort_dir(dir_list): # Сортирует директории по типу 
         print("При сортировке были потеряны файлы")
     return new_list
 
+def agree_eula():
+    print(return_main_dir()+"\server\eula.txt")
+    with open(return_main_dir()+"\server\eula.txt", 'r', encoding='utf-8') as f:
+        new_lines = []
+        for line in f:
+            # Сохраняем комментарии и пустые строки как есть
+            if "eula=false" in line:
+                new_lines.append("eula=true")
+            else:
+                new_lines.append(line)
+    with open(return_main_dir()+"\server\eula.txt", 'w', encoding='utf-8') as f:
+        f.writelines(new_lines)
+
 def command_to_param(command):
     if command == "op":
         return ["is_op", True]

@@ -23,7 +23,7 @@ import stmc
 # Выполненные задачи:
 # - Доделать *real-time* консоль
 # - Автоматизировать выбор директорий
-# - Сделать автокомпиляюцию ядра
+# - Сделал автокомпиляцию ядра (просто закинуть в папку 'server')
 # - Навигация в файлах сервера
 # - Удаление и создание файлов через files_page
 
@@ -66,6 +66,11 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             if line:
                 if "INFO]: Thread RCON Client" in line:
                     break
+                if "You need to agree to the EULA in order to run the server" in line:
+                    stmc.agree_eula()
+                    self.kill_server()
+                    time.sleep(3)
+                    self.start_server()
                 stmc.add_line(line)
                 self.console_event_check(line)
                 socketio.start_background_task(
@@ -115,11 +120,9 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         properties_path = self.path + "\server.properties"
         with open(properties_path, 'r', encoding='utf-8') as f:
             for line in f:
-                # Убираем пробелы и пропускаем пустые строки/комментарии
                 stripped = line.strip()
                 if not stripped or stripped[0] in ('#', '!'):
                     continue
-                # Разделяем ключ и значение
                 if '=' in stripped:
                     key, value = stripped.split('=', 1)
                     result.append([
@@ -129,22 +132,18 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         return result
         
     def update_properties(self, key, value):
-        # Сюда путь к файлу с настройками (НЕ ЗАБЫТЬ \\ ВМЕСТО \)
         updated = False
         new_lines = []
         properties_path = self.path + "\server.properties"
         with open(properties_path, 'r', encoding='utf-8') as f:
             for line in f:
-                # Сохраняем комментарии и пустые строки как есть
                 if line.strip().startswith(('#', '!')) or len(line.strip()) == 0:
                     new_lines.append(line)
                     continue
-                # Разделяем ключ и значение с сохранением разделителя
                 if '=' in line:
                     key_part, value_part = line.split('=', 1)
                     current_key = key_part.strip()
                     if current_key == key:
-                        # Сохраняем оригинальное форматирование
                         separator = line[len(key_part.rstrip()):].split('=', 1)[0]
                         new_line = f"{key}={value}\n"
                         new_lines.append(new_line)
@@ -155,11 +154,15 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                     new_lines.append(line)
         if not updated:
             raise ValueError(f"Ключ '{key}' не найден в файле")
-        
-        # Перезаписываем файл
         with open(properties_path, 'w', encoding='utf-8') as f:
             f.writelines(new_lines)
         return True
+    
+    def kill_server(self):
+        self.proccess.terminate()
+        time.sleep(1)
+        if self.proccess.poll() is None:
+            self.proccess.kill()
 
 # Инициализация сервера
 server = server_manager()

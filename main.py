@@ -30,7 +30,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def __init__(self):
         # self._kill_processes_locking_file(os.path.join(path, "world", "session.lock"))
         stmc.set_all_offline()
-        self.path = os.path.join(stmc.return_main_dir(), "SERVER") # путь к папке сервера
+        self.path = os.path.join(stmc.return_main_dir(), "server") # путь к папке сервера
         self.core = "purpur-1.21.7-2476.jar"
         
     def start_server(self):

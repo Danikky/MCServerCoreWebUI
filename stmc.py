@@ -116,7 +116,7 @@ def get_online():
         else:
             return 0
     except:
-        print("ПИЗДАААААААААААААААА")
+        print("Не удалось получить список онлайн игрков")
     finally:
         conn.commit()
         c.close()
@@ -174,6 +174,13 @@ def set_all_offline():
             conn.commit()
             c.close()
             conn.close()
+            
+def return_main_dir():
+    if getattr(sys, 'frozen', False):
+        script_path = os.path.dirname(sys.executable)
+    else:
+        script_path = os.path.dirname(os.path.abspath(__file__))
+    return script_path
 
 def command_to_param(command):
     if command == "op":
@@ -194,54 +201,3 @@ def command_to_param(command):
         return ["is_blacklist", False]
     else:
         return False
-        
-def get_properties_data():
-    result = []
-    properties_path = server_dir_path + "server.properties"
-    with open(properties_path, 'r', encoding='utf-8') as f:
-        for line in f:
-            # Убираем пробелы и пропускаем пустые строки/комментарии
-            stripped = line.strip()
-            if not stripped or stripped[0] in ('#', '!'):
-                continue
-            # Разделяем ключ и значение
-            if '=' in stripped:
-                key, value = stripped.split('=', 1)
-                result.append([
-                    key.strip(), 
-                    value.strip()
-                ])
-    return result
-        
-def update_properties(key, value):
-    # Сюда путь к файлу с настройками (НЕ ЗАБЫТЬ \\ ВМЕСТО \)
-    updated = False
-    new_lines = []
-    properties_path = server_dir_path + "server.properties"
-    with open(properties_path, 'r', encoding='utf-8') as f:
-        for line in f:
-            # Сохраняем комментарии и пустые строки как есть
-            if line.strip().startswith(('#', '!')) or len(line.strip()) == 0:
-                new_lines.append(line)
-                continue
-            # Разделяем ключ и значение с сохранением разделителя
-            if '=' in line:
-                key_part, value_part = line.split('=', 1)
-                current_key = key_part.strip()
-                if current_key == key:
-                    # Сохраняем оригинальное форматирование
-                    separator = line[len(key_part.rstrip()):].split('=', 1)[0]
-                    new_line = f"{key}={value}\n"
-                    new_lines.append(new_line)
-                    updated = True
-                else:
-                    new_lines.append(line)
-            else:
-                new_lines.append(line)
-    if not updated:
-        raise ValueError(f"Ключ '{key}' не найден в файле")
-    
-    # Перезаписываем файл
-    with open(properties_path, 'w', encoding='utf-8') as f:
-        f.writelines(new_lines)
-    return True

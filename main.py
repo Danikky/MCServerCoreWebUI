@@ -17,28 +17,25 @@ import stmc
 
 # Задачи:
 # - Сделать код более читаемый
-# - организовать работу с множеством ядер одновременно
 # - сделать возможность компилировать и настраивать ядро + библиотека ядер
 # - Доделать управление файлами сервера
 # - Доделать *real-time* консоль
 
 stmc.init_db()
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-
 class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
-    def __init__(self, path):
+    def __init__(self):
         # self._kill_processes_locking_file(os.path.join(path, "world", "session.lock"))
         stmc.set_all_offline()
-        self.path = path 
-    
-    def start_server(self):
+        self.path = os.path.join(stmc.return_main_dir(), "server") # путь к папке сервера
+        self.core = "purpur-1.21.7-2476.jar"
         
+    def start_server(self):
         self.proccess = subprocess.Popen(
-            ['java', '-Xmx8024M', '-Xms1024M', '-jar', 'paper-1.21.4-227.jar'],
+            ['java', '-Xmx8024M', '-Xms1024M', '-jar', self.core], # аргументы запуска сервера
             cwd=self.path,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -47,12 +44,10 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             bufsize=0,
             universal_newlines=True
         )
-
         self.reader_thread = threading.Thread(
             target=self.get_console_output,
             daemon=True
         )
-        
         self.reader_thread.start()
     
     def get_console_output(self):
@@ -64,13 +59,13 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                 stmc.add_line(line)
                 self.console_event_check(line)
                 socketio.start_background_task(
-                socketio.emit, 
-                'console_update', 
-                {'line': line.strip()}, 
-                namespace='/server'
-            )    # Отправка события
+                    socketio.emit, 
+                    'console_update', 
+                    {'line': line.strip()}, 
+                    namespace='/server'
+                )    # Отправка события
                 print(line)  # Для отладки
-    
+
     def send_rcon_command(self, command: str):
         try:
             with MCRcon("localhost", "111111", 25575) as mcr:
@@ -95,7 +90,6 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             stmc.set_status(name, "is_online", False)
             self.players = stmc.get_online()
             
-    
     def is_server_running(self):
         """Проверяет, работает ли процесс сервера"""
         for proc in psutil.process_iter():
@@ -105,9 +99,60 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
         return False
+    
+    def get_properties_data(self):
+        result = []
+        properties_path = self.path + "\server.properties"
+        with open(properties_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                # Убираем пробелы и пропускаем пустые строки/комментарии
+                stripped = line.strip()
+                if not stripped or stripped[0] in ('#', '!'):
+                    continue
+                # Разделяем ключ и значение
+                if '=' in stripped:
+                    key, value = stripped.split('=', 1)
+                    result.append([
+                        key.strip(),
+                        value.strip()
+                    ])
+        return result
+        
+    def update_properties(self, key, value):
+        # Сюда путь к файлу с настройками (НЕ ЗАБЫТЬ \\ ВМЕСТО \)
+        updated = False
+        new_lines = []
+        properties_path = self.path + "\server.properties"
+        with open(properties_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                # Сохраняем комментарии и пустые строки как есть
+                if line.strip().startswith(('#', '!')) or len(line.strip()) == 0:
+                    new_lines.append(line)
+                    continue
+                # Разделяем ключ и значение с сохранением разделителя
+                if '=' in line:
+                    key_part, value_part = line.split('=', 1)
+                    current_key = key_part.strip()
+                    if current_key == key:
+                        # Сохраняем оригинальное форматирование
+                        separator = line[len(key_part.rstrip()):].split('=', 1)[0]
+                        new_line = f"{key}={value}\n"
+                        new_lines.append(new_line)
+                        updated = True
+                    else:
+                        new_lines.append(line)
+                else:
+                    new_lines.append(line)
+        if not updated:
+            raise ValueError(f"Ключ '{key}' не найден в файле")
+        
+        # Перезаписываем файл
+        with open(properties_path, 'w', encoding='utf-8') as f:
+            f.writelines(new_lines)
+        return True
 
-server_dir_path = r"C:\Users\riper\ToolsUsefull\MyProgramDev\CoreServer"
-server = server_manager(server_dir_path)
+# Инициализация сервера
+server = server_manager()
 
 @socketio.on('connect', namespace='/server')
 def handle_connect():
@@ -185,21 +230,18 @@ def about():
 @app.route("/server", methods=["POST", "GET"])
 @login_required
 def server_console():
-    console_output = []
     if request.method == "POST":
         console_input = request.form.get("console_input")
         command = request.form.get("command")
-        
         if console_input not in [None, "null", ""]:
             server.send_rcon_command(console_input)
-        
         if command not in [None, "null", ""]:
             if command == "start":
                 if server.is_server_running() == False:
                     server.start_server()
             else:
                 server.send_rcon_command(command)
-            
+
         is_server_run = server.is_server_running()
         return render_template("server.html", is_server_run=is_server_run)
     else:
@@ -217,20 +259,20 @@ def get_console_history():
 @app.route("/server/settings", methods=['GET', 'POST'])
 @login_required
 def server_settings():
-    properties_data = stmc.get_properties_data()
+    properties_data = server.get_properties_data()
     for i in range(len(properties_data)):
         new_value = request.form.get(properties_data[i][0])
         if new_value not in [None, "null", ""]:
-            stmc.update_properties(properties_data[i][0], new_value)
+            server.update_properties(properties_data[i][0], new_value)
     else:
-        properties_data = stmc.get_properties_data()
+        properties_data = server.get_properties_data()
         return render_template("server_settings.html", properties_data=properties_data)
 
 # Управление файлами сервера (редактирование/создание/удаление файлов, директорий)
 @app.route("/server/files", methods=["POST", "GET"])
 @login_required
 def server_files():
-    dir_list = os.listdir(server_dir_path)
+    dir_list = os.listdir(server.path)
     if request.method == "POST":
         return render_template("server_files.html", dir_list=dir_list)
     else:

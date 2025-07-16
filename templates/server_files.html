@@ -9,15 +9,26 @@ File manager
 <div class="alert alert-info">
     <div class="table">
         <h1>Файлы:</h1>
-        <button class="btn btn-success" name="command" value="make">Создать файл</button>
-        <button class="btn btn-success" name="command" value="make">Создать папку</button>
+        <form method="post">
+            <input type="hidden" name="item" value="{{el}}">
+            <div class="tablet">
+                <br><input type="text" name="text" id="text" class="form-control", placeholder="Enter new file/dir name"><br>
+                <button class="btn btn-success" name="command" value="make">Создать папку/файл</button>
+            </div>
+        </form>
     </div>
     {% for el in dir_list %}
         <div class="alert alert-primary">
             <form method="post">
                 <div>
                     <input type="hidden" name="item" value="{{el}}">
-                    <button class="btn btn-success" name="command" value="open">{{el}}</button>
+                    {% if "." in el%}
+                        <button class="btn btn-succes" name="command" value="open">{{el}}</button>
+                    {% else %}
+                        <a href="/server/files/{{path}}-{{el}}" class="btn btn-primary">
+                            {{el}}
+                        </a>
+                    {% endif %}
                     <button class="btn btn-warning" name="command" value="rename">Rename</button>
                     <button class="btn btn-danger" name="command" value="delete">Delete</button>
                 </div>

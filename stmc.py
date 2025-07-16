@@ -6,6 +6,7 @@ import os
 import sys
 import subprocess
 import threading
+import shutil
 from werkzeug.security import generate_password_hash, check_password_hash
 
 server_dir_path = r"C:\Users\riper\ToolsUsefull\MyProgramDev\CoreServer"
@@ -182,23 +183,70 @@ def return_main_dir():
         script_path = os.path.dirname(os.path.abspath(__file__))
     return script_path
 
-def rename_dir(folder_path, new_name):  # Указать пусть, относительно self.path
-    dir_path = os.path.join(return_main_dir() + "\server", folder_path)
-    # Переименовывает файл/директорию
+def rename(folder_path, new_name):  # Указать пусть, относительно self.path
+    path = os.path.join(return_main_dir() + "\server", folder_path)
+    try:
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Объект не найден: {path}")
+        parent_dir = os.path.dirname(path)
+        new_path = os.path.join(parent_dir, new_name)
+        if os.path.exists(new_path):
+            raise FileExistsError(f"Имя уже занято: {new_name}")
+        os.rename(path, new_path)
+        return True
+    except Exception as e:
+        print(f"Ошибка переименования: {str(e)}")
+        return False
     
-def del_dir(folder_path): # Указать пусть, относительно self.path
-    dir_path = os.path.join(return_main_dir() + "\server", folder_path)
-    # Удаляет файл/директорию
+def delete(folder_path): # Указать пусть, относительно self.path
+    path = os.path.join(return_main_dir() + "\server", folder_path)
+    try:
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Объект не найден: {path}")
+        if os.path.isfile(path):
+            os.remove(path)
+            return True
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+            return True
+    except Exception as e:
+        print(f"Ошибка удаления: {str(e)}")
+        return False
+
     
 def get_dir(folder_path): # Указать пусть, относительно self.path
     dir_path = os.path.join(return_main_dir() + "\server", folder_path)
     dir_list = os.listdir(dir_path)
     return dir_list
-    # Возвращает список файлов/директорий
     
-def make_dir(folder_path): # Указать пусть, относительно self.path
-    dir_path = os.path.join(return_main_dir() + "\server", folder_path)
-    # создаёт директорию/файл
+def make(folder_path, is_directory): # Указать пусть, относительно self.path
+    path = os.path.join(return_main_dir() + "\server", folder_path)
+    try:
+        if os.path.exists(path):
+            raise FileExistsError(f"Объект уже существует: {path}")
+        if is_directory:
+            os.makedirs(path, exist_ok=True)
+            return True
+        parent_dir = os.path.dirname(path)
+        if parent_dir and not os.path.exists(parent_dir):
+            os.makedirs(parent_dir, exist_ok=True)
+        with open(path, 'w') as f:
+            pass
+        return True
+    except:
+        print("Ошибка при создании файла/директории")
+
+def sort_dir(dir_list): # Сортирует директории по типу - папки>файлы
+    new_list = []
+    for i in dir_list:
+        if "." not in i:
+            new_list.append(i)
+    for i in dir_list:
+        if "." in i:
+            new_list.append(i)
+    if len(dir_list) != len(new_list):
+        print("При сортировке были потеряны файлы")
+    return new_list
 
 def command_to_param(command):
     if command == "op":

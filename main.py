@@ -276,27 +276,30 @@ def server_settings():
         return render_template("server_settings.html", properties_data=properties_data)
 
 # Управление файлами сервера (редактирование/создание/удаление файлов, директорий)
-@app.route("/server/files", methods=["POST", "GET"])
+@app.route("/server/files/<string:path>", methods=["POST", "GET"])
 @login_required
-def server_files():
-    dir_list = os.listdir(server.path)
+def server_files_to(path):
+    dir_list = os.listdir(stmc.return_main_dir() + "\\" + str(path).replace("-", "\\"))
+    dir_list = stmc.sort_dir(dir_list)
     if request.method == "POST":
         command = request.form.get("command")
         item = request.form.get("item")
         text = request.form.get("text")
         if command not in [None, "null", ""]:
             if command == "open":
-                if "." not in item:
-                    dir_list = stmc.get_dir(item)
+                pass
             if command == "rename":
-                stmc.rename_dir(item, text)
+                stmc.rename(item, text)
             if command == "delete":
-                stmc.del_dir(item)
+                stmc.delete(item)
             if command == "make":
-                stmc.make_dir(item)
-        return render_template("server_files.html", dir_list=dir_list)
+                if "." in item:
+                    stmc.make(item, True)
+                else:
+                    stmc.make(item, False)
+        return render_template("server_files.html", dir_list=dir_list, path=path)
     else:
-        return render_template("server_files.html", dir_list=dir_list)
+        return render_template("server_files.html", dir_list=dir_list, path=path)
 
 # Управление игроками (Кто играет realtime, Кто заходил, Права, Баны, Вишлист)
 @app.route("/server/players", methods=["POST", "GET"])

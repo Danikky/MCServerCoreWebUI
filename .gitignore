@@ -1,5 +1,5 @@
 server
 *.pyc
-__pycache__/
-*.egg-info/
+__pycache__
+*.egg-info
 *.db

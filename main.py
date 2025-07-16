@@ -34,31 +34,26 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         stmc.set_all_offline()
         if id == None:
             self.id = None
-            return
+            self.path = r"C:\Users\riper\ToolsUseFull\Projects\ServerSite"
         else:
             self.id = id
             server_data = stmc.get_server_data(self.id)
             self.name = server_data[1]
-            self.core = server_data[2]
-            self.path = server_data[3]
+            self.path = "\\{self.name}"
+            # self.core = ...
+            # self.db = ...
     
     def get_folder(self):
         folder_path = self.path
-        try:
-            if not os.path.isdir(folder_path):
-                return []
-            return [os.path.join(folder_path, item) for item in os.listdir(folder_path)]
-        except Exception:
-            return []
+        return [os.path.join(folder_path, item) for item in os.listdir(folder_path)]
     
     def get_cores(self):
         folder_path = self.path + r"/cores"
-        try:
-            if not os.path.isdir(folder_path):
-                return []
-            return [os.path.join(folder_path, item) for item in os.listdir(folder_path)]
-        except Exception:
-            return []
+        return [os.path.join(folder_path, item) for item in os.listdir(folder_path)]
+        
+    def get_servers(self):
+        folder_path = r"/servers"
+        return [os.path.join(folder_path, item) for item in os.listdir(folder_path)]
     
     def start_server(self):
         self.proccess = subprocess.Popen(
@@ -88,8 +83,8 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                 stmc.add_line(line)
                 self.console_event_check(line)
                 socketio.start_background_task(
-                socketio.emit, 
-                'console_update', 
+                socketio.emit,
+                'console_update',
                 {'line': line.strip()}, 
                 namespace='/server'
             )    # Отправка события
@@ -187,6 +182,7 @@ def handle_connect():
 
 # Нужен скрипт - хранитель переменных !!!
 db_name = stmc.db_name
+global server
 server = server_manager(None)
 
 @app.route("/", methods=["POST", "GET"])
@@ -203,32 +199,21 @@ def about():
 
 # Выбор сервера + новый
 @app.route("/servers", methods=["POST", "GET"])
-def servers():
-    servers_data = stmc.get_servers_data()
+def servers_list():
+    servers_data = []
+    for i in range(len(server.get_servers())):
+        x = [stmc.get_id_by_name(server.get_servers()[i].replace("/servers\\", "")), server.get_servers()[i].replace("/servers\\", "")]
+        servers_data.append(x)
     if request.method == "POST":
         id = request.form.get("id")
-        global server
-        server = server_manager(id)
     else:
-        return render_template("servers.html", server_data=servers_data)
-
-# Страница создания нового сервера
-@app.route("/servers/create_server_page", methods=["POST", "GET"])
-def create_server_page():
-    if request.method == "POST":
-        name = request.form.get("name")
-        core = request.form.get("core")
-        stmc.create_server()
-    else:
-        cores = server.get_cores()
-        return render_template("create_server_page.html", cores=cores)
+        return render_template("servers.html", servers_data=servers_data)
 
 # Сервер (Консоль, Данные, Производительность, Игроки, управление) (Fast data)
 @app.route("/server/<int:id>", methods=["POST", "GET"])
 def server_console(id):
     if server == None:
-        server = server_manager()
-            
+        server = server_manager(id)
     if request.method == "POST":
         console_input = request.form.get("console_input")
         command = request.form.get("command")

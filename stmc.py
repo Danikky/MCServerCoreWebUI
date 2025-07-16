@@ -17,9 +17,7 @@ def init_db():
     
     c.execute("""CREATE TABLE IF NOT EXISTS servers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    core TEXT NOT NULL,
-    path TEXT NOT NULL
+    name TEXT NOT NULL
     )""")
     
     c.execute("""CREATE TABLE IF NOT EXISTS players (
@@ -52,13 +50,25 @@ def create_server_folder(folder_name: str) -> bool:
         os.makedirs(path, exist_ok=True)
     except Exception as e:
         print(f"Непредвиденная ошибка при создании папки: {e}")
-
-def create_server(name, core):
-    path = "servers/" + name
+        
+def get_id_by_name(name):
     conn = sqlite3.connect(f"{db_name}")
     c = conn.cursor()
     try:
-        c.execute("INSERT INTO servers (name, core, path)", (name, core, path))
+        c.execute("SELECT id FROM servers WHERE name = ?", (name,))
+        id = c.fetchone()
+    except:
+        print("Неудалось получить id сервера")
+    conn.commit()
+    c.close()
+    conn.close()
+    return id[0]
+
+def create_server(name):
+    conn = sqlite3.connect(f"{db_name}")
+    c = conn.cursor()
+    try:
+        c.execute("INSERT INTO servers (name", (name,))
         c.execute("SELECT id FROM servers WHERE name = ?", (name,))
         id = c.fetchone()
     except:

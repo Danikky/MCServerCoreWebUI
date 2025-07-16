@@ -56,6 +56,8 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             if not line and self.proccess.poll() is not None:
                 break
             if line:
+                if "INFO]: Thread RCON Client" in line:
+                    break
                 stmc.add_line(line)
                 self.console_event_check(line)
                 socketio.start_background_task(

@@ -17,13 +17,13 @@ import stmc
 
 # Задачи:
 # - Сделать код более читаемый
-# - Сделать возможность компилировать и настраивать ядро + библиотека ядер
 # - Доделать управление файлами сервера 
 # - Сделать интерфейс красивым 
 
 # Выполненные задачи:
 # - Доделать *real-time* консоль
 # - Автоматизировать выбор директорий
+# - Сделать автокомпиляюцию ядра
 
 stmc.init_db()
 app = Flask(__name__)
@@ -35,11 +35,13 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         # self._kill_processes_locking_file(os.path.join(path, "world", "session.lock"))
         stmc.set_all_offline()
         self.path = os.path.join(stmc.return_main_dir(), "server") # путь к папке сервера
-        self.core = "purpur-1.21.7-2476.jar"
+        for i in os.listdir(self.path):
+            if ".jar" in i: 
+                self.core = i
         
     def start_server(self):
         self.proccess = subprocess.Popen(
-            ['java', '-Xmx8024M', '-Xms1024M', '-jar', self.core], # аргументы запуска сервера
+            ['java', '-Xmx8024M', '-Xms1024M', '-jar', self.core, "nogui"], # аргументы запуска сервера
             cwd=self.path,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,

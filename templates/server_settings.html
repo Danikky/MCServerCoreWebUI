@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Настройки сервера{% endblock %}
+{% block title %}Settings{% endblock %}
 
 {% block body %}
 <div class="container-fluid px-0">
@@ -19,7 +19,6 @@
                                    placeholder="{{ el[1] }}">
                         </div>
                     </div>
-
                     {# Переносим на новую строку каждые 3 элемента #}
                     {% if loop.index % 6 == 0 and not loop.last %}
                         </div><div class="row">

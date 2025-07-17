@@ -84,15 +84,15 @@ header {
 }
 
 .fonter {
-    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    font-family: 'Arial';
 }
 
 .scroll-container {
-	overflow: scroll;
-  @supports (scrollbar-gutter: stable) {
-  overflow: auto;    
-  scrollbar-gutter: stable;  
-  }
+    overflow: scroll;
+    @supports (scrollbar-gutter: stable) {
+    overflow: auto;    
+    scrollbar-gutter: stable;  
+    }
 }
     
 /* Для работы server_settings */

@@ -302,6 +302,8 @@ def server_files_to(path):
                     stmc.make(str(path.replace("-", "\\"))+"\\"+item, False)
                 else:
                     stmc.make(str(path.replace("-", "\\"))+"\\"+item, True)
+            dir_list = os.listdir(stmc.return_main_dir() + "\\" + str(path).replace("-", "\\"))
+            dir_list = stmc.sort_dir(dir_list)
         return render_template("server_files.html", dir_list=dir_list, path=path)
     else:
         return render_template("server_files.html", dir_list=dir_list, path=path)

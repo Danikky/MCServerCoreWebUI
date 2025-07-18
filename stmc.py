@@ -252,7 +252,6 @@ def agree_eula():
     with open(return_main_dir()+"\server\eula.txt", 'r', encoding='utf-8') as f:
         new_lines = []
         for line in f:
-            # Сохраняем комментарии и пустые строки как есть
             if "eula=false" in line:
                 new_lines.append("eula=true")
             else:

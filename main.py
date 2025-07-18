@@ -286,15 +286,19 @@ def server_settings():
 def server_files_to(path):
     dir_list = os.listdir(stmc.return_main_dir() + "\\" + str(path).replace("-", "\\"))
     dir_list = stmc.sort_dir(dir_list)
+    is_renaming = [None, False]
     if request.method == "POST":
         command = request.form.get("command")
         item = request.form.get("item")
         text = request.form.get("text")
+        new_name = request.form.get("new_name")
         if command not in [None, "null", ""]:
             if command == "open":
                 pass
             if command == "rename":
-                stmc.rename(str(path.replace("-", "\\"))+"\\"+item, text)
+                is_renaming = [item, True]
+                if new_name != "":
+                    stmc.rename(str(path.replace("-", "\\"))+"\\"+item, new_name)
             if command == "delete":
                 stmc.delete(str(path.replace("-", "\\"))+"\\"+item)
             if command == "make":
@@ -304,9 +308,9 @@ def server_files_to(path):
                     stmc.make(str(path.replace("-", "\\"))+"\\"+item, True)
             dir_list = os.listdir(stmc.return_main_dir() + "\\" + str(path).replace("-", "\\"))
             dir_list = stmc.sort_dir(dir_list)
-        return render_template("server_files.html", dir_list=dir_list, path=path)
+        return render_template("server_files.html", dir_list=dir_list, path=path, is_renaming=is_renaming)
     else:
-        return render_template("server_files.html", dir_list=dir_list, path=path)
+        return render_template("server_files.html", dir_list=dir_list, path=path, is_renaming=is_renaming)
 
 # Управление игроками (Кто играет realtime, Кто заходил, Права, Баны, Вишлист)
 @app.route("/server/players", methods=["POST", "GET"])

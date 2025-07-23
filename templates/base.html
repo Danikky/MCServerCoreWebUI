@@ -72,13 +72,9 @@
 
     {% block body %}
     {% endblock %}
-
-    {% if current_user.is_authenticated %}
-        <div>
-            <img class="background" src="{{ url_for('static', filename='/res/img7.png') }}" alt="minecraft(main-link)">
-        </div>
-    {% else %}
-    {% endif %}
+    <div>
+        <img class="background" src="{{ url_for('static', filename='/res/img7.png') }}" alt="minecraft(main-link)">
+    </div>
 </body>
 </html>
 

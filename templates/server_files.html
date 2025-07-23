@@ -30,7 +30,7 @@ File manager
                     {% if is_renaming[0] == el %}
                         {% if is_renaming[1] == True %}
                             <input type="text" name="new_name" id="new_name", placeholder="{{el}}">
-                            <button class="btn btn-warning" name="command" value="rename">submit</button>
+                            <button class="btn btn-success" name="command" value="rename">submit</button>
                         {% endif %}
                     {% else %}
                         <button class="btn btn-warning" name="command" value="rename">Rename</button>

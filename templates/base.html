@@ -41,6 +41,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="/server/backups" class="nav-link {% if request.path == '/server/backups' %}active{% endif %}" {% if request.path == '/server/backups' %}aria-current="page"{% endif %}>
+                        Бекапы
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="/server/sqltables" class="nav-link {% if request.path == '/server/sqltables' %}active{% endif %}" {% if request.path == '/server/sqltables' %}aria-current="page"{% endif %}>
                         База данных
                     </a>

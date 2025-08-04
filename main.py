@@ -27,6 +27,7 @@ import stmc
 # - Сделать автоотчистку БД + отдельный интерфейс с кнопкой 'сброс'
 # - Сделать возможность работать с несколькими ядрами одновременно
 # - Выводить на панель управления информанци об онлайне, ОЗУ, RAM, сети, IP, статусы
+# - Сделать логирование и архивирование консольного вывода, по циклам работы ядра
 
 stmc.init_db()
 app = Flask(__name__)
@@ -164,6 +165,18 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         time.sleep(1)
         if self.proccess.poll() is None:
             self.proccess.kill()
+    
+    def get_backups_list():
+        pass
+    
+    def create_backup():
+        pass
+    
+    def delete_backup():
+        pass
+    
+    def rename_backup():
+        pass
 
 # Инициализация сервера
 server = server_manager()
@@ -332,6 +345,24 @@ def server_players():
         online_players = len(stmc.get_online())
         players_data = stmc.get_all_players_data()
         return render_template("server_players.html", players_data=players_data, online_players=online_players)
+
+# Страница со списком бекапов и возможностью их создавать
+@app.route("/server/backups")
+@login_required
+def backups_page():
+    backups_list = server.get_backups_list()
+    if request.method == "POST":
+        command = request.form.get("command")
+        name = request.form.get("name")
+        if command == "create":
+            server.create_backup(name)
+        if command == "delete":
+            server.delete_backup(name)
+        if command == "rename":
+            new_name = request.form.get("new_name")
+            server.rename_backup(name, new_name)
+    else:
+        return render_template("backups_page.html", backups_list=backups_list)
 
 # Управление базами данных (Вывод/редактирование таблиц)
 @app.route("/server/sqltables")

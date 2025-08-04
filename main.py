@@ -168,7 +168,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             self.proccess.kill()
 
     def get_backups_list(self):
-        if "backups" not in stmc.get_dir(self.path): 
+        if "backups" not in stmc.get_dir(self.path):
             stmc.make(self.path + "\\backups", True)
         return stmc.get_dir(self.path + "\\backups")
 

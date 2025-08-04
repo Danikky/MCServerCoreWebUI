@@ -11,13 +11,14 @@ import threading
 import time
 from werkzeug.security import generate_password_hash, check_password_hash
 import stmc
+import datetime as dt
 
 # Направление сайта - 
 # web-GUI для управлением сервером
 
 # Задачи:
-# - Сделать код более читаемый 
-# - Сделать интерфейс красивым 
+# - Сделать код более читаемый
+# - Сделать интерфейс красивым
 # - Сделать страницу с бекапами
 # - Использовать виртуальное окружение .venv
 # - Автоматизировать активацию rcon
@@ -159,24 +160,28 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         with open(properties_path, 'w', encoding='utf-8') as f:
             f.writelines(new_lines)
         return True
-    
+
     def kill_server(self):
         self.proccess.terminate()
         time.sleep(1)
         if self.proccess.poll() is None:
             self.proccess.kill()
-    
-    def get_backups_list():
-        pass
-    
-    def create_backup():
-        pass
-    
-    def delete_backup():
-        pass
-    
-    def rename_backup():
-        pass
+
+    def get_backups_list(self):
+        if "backups" not in stmc.get_dir(self.path): 
+            stmc.make(self.path + "\\backups", True)
+        return stmc.get_dir(self.path + "\\backups")
+
+    def create_backup(self, name):
+        date = dt.datetime.now()
+        stmc.clone_dir(self.path, self.path + f"\\backups\\{name}-{date}")
+        stmc.delete(self.path + f"\\backups\\{name}-{date}\\backups")
+
+    def delete_backup(self, name):
+        stmc.delete(self.path + f"\\backups\\{name}")
+
+    def rename_backup(self, name, new_name):
+        stmc.rename(self.path + f"\\backups\\{name}", new_name)
 
 # Инициализация сервера
 server = server_manager()
@@ -351,6 +356,7 @@ def server_players():
 @login_required
 def backups_page():
     backups_list = server.get_backups_list()
+    is_renaming = [None, False]
     if request.method == "POST":
         command = request.form.get("command")
         name = request.form.get("name")
@@ -359,10 +365,11 @@ def backups_page():
         if command == "delete":
             server.delete_backup(name)
         if command == "rename":
+            is_renaming = [name, True]
             new_name = request.form.get("new_name")
             server.rename_backup(name, new_name)
     else:
-        return render_template("backups_page.html", backups_list=backups_list)
+        return render_template("backups_page.html", backups_list=backups_list, is_renaming=is_renaming)
 
 # Управление базами данных (Вывод/редактирование таблиц)
 @app.route("/server/sqltables")

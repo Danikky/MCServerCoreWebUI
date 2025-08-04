@@ -4,4 +4,31 @@
 
 {% block body %}
 <h1>Список бекапов(+усправление) и форма для создания нового</h1>
+<div>
+    <form method="post">
+        {% for el in backups_list %}
+            <div class="alert alert-primary">
+                <div class="alert alert-info">
+                    <input type="hidden" name="name" value="{{el}}">
+                    <h1>
+                        {{el}}
+                    <h1>
+                    {% if is_renaming[0] == el %}
+                        {% if is_renaming[1] == True %}
+                            <input type="text" name="new_name" id="new_name", placeholder="{{el}}">
+                            <button class="btn btn-success" name="command" value="rename">submit</button>
+                        {% endif %}
+                    {% else %}
+                        <button class="btn btn-warning" name="command" value="rename">Rename</button>
+                    {% endif %}
+                    <button class="btn btn-danger" name="command" value="delete">Delete</button>
+                </div>
+            </div>
+        {% endfor %}
+        <div class="alert alert-info row-cols-5">
+            <input type="text" name="name">
+            <button class="btn btn-success" name="command" value="create">create</button>
+        </div>
+    </form>
+</div>
 {% endblock %}

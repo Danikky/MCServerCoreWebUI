@@ -235,6 +235,17 @@ def make(folder_path, is_directory): # Указать пусть, относит
     except:
         print(f"Ошибка при создании файла/директории({path})")
 
+def clone_dir(path, to_path, overwrite: bool = False):
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Исходная директория не найдена: {path}")
+    if not os.path.isdir(path):
+        raise NotADirectoryError(f"Указанный путь не является директорией: {path}")
+    if os.path.exists(to_path):
+        if not overwrite:
+            raise FileExistsError(f"Целевая директория уже существует: {to_path}")
+        shutil.rmtree(to_path)
+    shutil.copytree(path, to_path)
+
 def sort_dir(dir_list): # Сортирует директории по типу - папки>файлы
     new_list = []
     for i in dir_list:

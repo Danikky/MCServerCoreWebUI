@@ -2,6 +2,7 @@ from flask import Flask, render_template, redirect, url_for, request, flash, jso
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import sqlite3
 from flask_socketio import SocketIO, emit
+import asyncio
 import os
 import sys
 import psutil
@@ -85,29 +86,23 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                 print(line)  # Для отладки
     
     def system_monitoring(self):
-        if self.is_server_running():
-            while True:
-                time.sleep(3)
-                self.cpu = psutil.cpu_percent(interval=1)
-                self.cpu_cores = psutil.cpu_count(logical=True)
-                self.memory = psutil.virtual_memory()
-                self.disk = psutil.disk_usage('/')
-                socketio.start_background_task(
-                        socketio.emit('system_update', 
-                            {
-                                'cpu_percent': self.cpu,
-                                'cpu_cores': self.cpu_cores,
-                                'ram_total': self.memory.total,
-                                'ram_used': self.memory.used,
-                                'ram_available': self.memory.available,
-                                'ram_percent': self.memory.percent,
-                                'disk_total': self.disk.total,
-                                'disk_used': self.disk.used,
-                                'disk_free': self.disk.free,
-                                'disk_percent': self.disk.percent
-                            }, 
-                        namespace='/server')
-                    )   # Отправка события
+        self.cpu = psutil.cpu_percent(interval=1)
+        self.cpu_cores = psutil.cpu_count(logical=True)
+        self.memory = psutil.virtual_memory()
+        self.disk = psutil.disk_usage('/')
+        return ({
+            "cpu_percent": f"{server.cpu}%",
+            "cpu_cores": server.cpu_cores,
+            "ram_total": f"{round(server.memory.total / (1024 ** 3), 1)} GB",
+            "ram_used": f"{round(server.memory.used / (1024 ** 3), 1)} GB",
+            "ram_available": f"{round(server.memory.available / (1024 ** 3), 1)} GB",
+            "ram_percent": f"{server.memory.percent}%",
+            "disk_total": f"{round(server.disk.total / (1024 ** 3), 1)} GB",
+            "disk_used": f"{round(server.disk.used / (1024 ** 3), 1)} GB",
+            "disk_free": f"{round(server.disk.free / (1024 ** 3), 1)} GB",
+            "disk_percent": f"{server.disk.percent}%"
+        })
+        
 
     def send_rcon_command(self, command: str):
         try:
@@ -285,6 +280,8 @@ def about():
 @app.route("/server", methods=["POST", "GET"])
 @login_required
 def server_console():
+    system_data = server.system_monitoring()
+    online_players = len(stmc.get_online())
     if request.method == "POST":
         console_input = request.form.get("console_input")
         command = request.form.get("command")
@@ -297,10 +294,10 @@ def server_console():
             else:
                 server.send_rcon_command(command)
         is_server_run = server.is_server_running()
-        return render_template("control_panel.html", is_server_run=is_server_run)
+        return render_template("control_panel.html", is_server_run=is_server_run, system_data=system_data, online_players=online_players)
     else:
         is_server_run = server.is_server_running()
-        return render_template("control_panel.html", is_server_run=is_server_run, system=server.system())
+        return render_template("control_panel.html", is_server_run=is_server_run, system_data=system_data, online_players=online_players)
 
 # Маршрут для получения истории консоли
 @app.route("/get_console_history")
@@ -419,7 +416,7 @@ def server_sql_tables():
 @app.route("/server/map")
 @login_required
 def server_map():
-    return render_template("system_page.html")
+    return render_template("server_map.html")
 
 # Для безопастного импорта файла(как библиотека) + run
 if __name__ == "__main__":

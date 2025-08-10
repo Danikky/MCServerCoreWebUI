@@ -41,7 +41,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         stmc.set_all_offline()
         self.path = os.path.join(stmc.return_main_dir(), "server") # путь к папке сервера
         for i in os.listdir(self.path):
-            if ".jar" in i: 
+            if ".jar" in i:
                 self.core = i
         
     def start_server(self):
@@ -83,6 +83,31 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                     namespace='/server'
                 )    # Отправка события
                 print(line)  # Для отладки
+    
+    def system_monitoring(self):
+        if self.is_server_running():
+            while True:
+                time.sleep(3)
+                self.cpu = psutil.cpu_percent(interval=1)
+                self.cpu_cores = psutil.cpu_count(logical=True)
+                self.memory = psutil.virtual_memory()
+                self.disk = psutil.disk_usage('/')
+                socketio.start_background_task(
+                        socketio.emit('system_update', 
+                            {
+                                'cpu_percent': self.cpu,
+                                'cpu_cores': self.cpu_cores,
+                                'ram_total': self.memory.total,
+                                'ram_used': self.memory.used,
+                                'ram_available': self.memory.available,
+                                'ram_percent': self.memory.percent,
+                                'disk_total': self.disk.total,
+                                'disk_used': self.disk.used,
+                                'disk_free': self.disk.free,
+                                'disk_percent': self.disk.percent
+                            }, 
+                        namespace='/server')
+                    )   # Отправка события
 
     def send_rcon_command(self, command: str):
         try:
@@ -100,8 +125,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             name = line_data[2].replace("[38;2;255;255;85m", "")
             stmc.reg_player(name)
             stmc.set_status(name, "is_online", True)
-            self.players = stmc.get_online()
-            
+            self.players = stmc.get_online()     
         if "left the game" in line:
             line_data = line.split() # разделяет строку на список по пробелам
             name = line_data[2].replace("[38;2;255;255;85m", "")
@@ -160,27 +184,6 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         with open(properties_path, 'w', encoding='utf-8') as f:
             f.writelines(new_lines)
         return True
-    
-    def system(self):
-        while True:
-            time.sleep(1)
-            self.cpu = psutil.cpu_percent(interval=1)
-            self.cpu_cores = psutil.cpu_count(logical=True)
-            self.memory = psutil.virtual_memory()
-            self.disk = psutil.disk_usage('/')
-            system_data = [
-                {"cpu_percent": server.cpu + "%"},
-                {"cpu_cores": server.cpu_cores},
-                {"ram_total": server.memory.total / 1024 + " GB"},
-                {"ram_used": server.memory.used / 1024 + " GB"},
-                {"ram_available": server.memory.available / 1024 + " GB"},
-                {"ram_percent": server.memory.percent + "%"},
-                {"disk_total": server.disk.total / 1024 + " GB"},
-                {"disk_used": server.disk.used / 1024 + " GB"},
-                {"disk_free": server.disk.free / 1024 + " GB"},
-                {"disk_percent": server.disk.percent + "%"}
-            ]
-
 
     def kill_server(self):
         self.proccess.terminate()
@@ -297,7 +300,7 @@ def server_console():
         return render_template("control_panel.html", is_server_run=is_server_run)
     else:
         is_server_run = server.is_server_running()
-        return render_template("control_panel.html", is_server_run=is_server_run)
+        return render_template("control_panel.html", is_server_run=is_server_run, system=server.system())
 
 # Маршрут для получения истории консоли
 @app.route("/get_console_history")
@@ -306,21 +309,20 @@ def get_console_history():
     history = [line[0] for line in console_data]
     return jsonify({'history': history})
 
-# Маршрут для получения состояния атрибутов системы
 @app.route("/get_system")
 def get_system():
-    return jsonify([
-        {"cpu_percent": server.cpu + "%"},
-        {"cpu_cores": server.cpu_cores},
-        {"ram_total": server.memory.total / 1024 + " GB"},
-        {"ram_used": server.memory.used / 1024 + " GB"},
-        {"ram_available": server.memory.available / 1024 + " GB"},
-        {"ram_percent": server.memory.percent + "%"},
-        {"disk_total": server.disk.total / 1024 + " GB"},
-        {"disk_used": server.disk.used / 1024 + " GB"},
-        {"disk_free": server.disk.free / 1024 + " GB"},
-        {"disk_percent": server.disk.percent + "%"}
-    ])
+    return jsonify({
+        "cpu_percent": f"{server.cpu}%",
+        "cpu_cores": server.cpu_cores,
+        "ram_total": f"{round(server.memory.total / (1024 ** 3), 1)} GB",
+        "ram_used": f"{round(server.memory.used / (1024 ** 3), 1)} GB",
+        "ram_available": f"{round(server.memory.available / (1024 ** 3), 1)} GB",
+        "ram_percent": f"{server.memory.percent}%",
+        "disk_total": f"{round(server.disk.total / (1024 ** 3), 1)} GB",
+        "disk_used": f"{round(server.disk.used / (1024 ** 3), 1)} GB",
+        "disk_free": f"{round(server.disk.free / (1024 ** 3), 1)} GB",
+        "disk_percent": f"{server.disk.percent}%"
+    })
     
 # Настройка сервера
 @app.route("/server/settings", methods=['GET', 'POST'])
@@ -417,7 +419,7 @@ def server_sql_tables():
 @app.route("/server/map")
 @login_required
 def server_map():
-    return render_template("server_map.html")
+    return render_template("system_page.html")
 
 # Для безопастного импорта файла(как библиотека) + run
 if __name__ == "__main__":

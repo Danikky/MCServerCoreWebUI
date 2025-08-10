@@ -61,7 +61,6 @@ Control panel
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const socket = io('/server');  // Указываем Namespace
-
         // Обработка новых сообщений
         socket.on('console_update', function(data) {
             const consoleDiv = document.getElementById('console-output');
@@ -71,7 +70,6 @@ Control panel
             consoleDiv.appendChild(newLine);
             consoleDiv.scrollTop = consoleDiv.scrollHeight; // Автоскролл
         });
-
         // Загрузка истории при открытии
         fetch('/get_console_history')
             .then(response => response.json())
@@ -85,7 +83,6 @@ Control panel
                 });
                 consoleDiv.scrollTop = consoleDiv.scrollHeight;
             });
-
         // Обработка ошибок
         socket.on('connect_error', (err) => {
             console.error('Ошибка подключения:', err);

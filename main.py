@@ -160,6 +160,27 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         with open(properties_path, 'w', encoding='utf-8') as f:
             f.writelines(new_lines)
         return True
+    
+    def system(self):
+        while True:
+            time.sleep(1)
+            self.cpu = psutil.cpu_percent(interval=1)
+            self.cpu_cores = psutil.cpu_count(logical=True)
+            self.memory = psutil.virtual_memory()
+            self.disk = psutil.disk_usage('/')
+            system_data = [
+                {"cpu_percent": server.cpu + "%"},
+                {"cpu_cores": server.cpu_cores},
+                {"ram_total": server.memory.total / 1024 + " GB"},
+                {"ram_used": server.memory.used / 1024 + " GB"},
+                {"ram_available": server.memory.available / 1024 + " GB"},
+                {"ram_percent": server.memory.percent + "%"},
+                {"disk_total": server.disk.total / 1024 + " GB"},
+                {"disk_used": server.disk.used / 1024 + " GB"},
+                {"disk_free": server.disk.free / 1024 + " GB"},
+                {"disk_percent": server.disk.percent + "%"}
+            ]
+
 
     def kill_server(self):
         self.proccess.terminate()
@@ -202,7 +223,6 @@ class User(UserMixin):
     def __init__(self, user_id, username):
         self.id = user_id
         self.username = username
-
 stmc.firts_time_admin()
         
 @login_manager.user_loader
@@ -274,18 +294,34 @@ def server_console():
             else:
                 server.send_rcon_command(command)
         is_server_run = server.is_server_running()
-        return render_template("server.html", is_server_run=is_server_run)
+        return render_template("control_panel.html", is_server_run=is_server_run)
     else:
         is_server_run = server.is_server_running()
-        return render_template("server.html", is_server_run=is_server_run)
+        return render_template("control_panel.html", is_server_run=is_server_run)
 
-# Новый маршрут для получения истории консоли
-@app.route('/get_console_history')
+# Маршрут для получения истории консоли
+@app.route("/get_console_history")
 def get_console_history():
     console_data = stmc.get_console_output()
     history = [line[0] for line in console_data]
     return jsonify({'history': history})
 
+# Маршрут для получения состояния атрибутов системы
+@app.route("/get_system")
+def get_system():
+    return jsonify([
+        {"cpu_percent": server.cpu + "%"},
+        {"cpu_cores": server.cpu_cores},
+        {"ram_total": server.memory.total / 1024 + " GB"},
+        {"ram_used": server.memory.used / 1024 + " GB"},
+        {"ram_available": server.memory.available / 1024 + " GB"},
+        {"ram_percent": server.memory.percent + "%"},
+        {"disk_total": server.disk.total / 1024 + " GB"},
+        {"disk_used": server.disk.used / 1024 + " GB"},
+        {"disk_free": server.disk.free / 1024 + " GB"},
+        {"disk_percent": server.disk.percent + "%"}
+    ])
+    
 # Настройка сервера
 @app.route("/server/settings", methods=['GET', 'POST'])
 @login_required

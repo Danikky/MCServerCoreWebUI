@@ -283,4 +283,15 @@ def command_to_param(command):
         return False
     
 def clear_db():
-    
+    try:
+        conn = sqlite3.connect(f"{db_name}")
+        c = conn.cursor()
+        c.execute("DELETE * FROM console_output")
+        c.execute("DELETE * FROM users")
+        c.execute("DELETE * FROM players")
+    except:
+        print("Ошибка при чистке базы данных")
+    finally:
+        conn.commit()
+        c.close()
+        conn.close()

@@ -87,10 +87,6 @@ def reg_player(username):
         conn.close()
         
 def set_status(username, status, value):
-    """Параметры:
-    Args:
-        status: is_online, is_op, is_banned, is_ip_banned, is_vip, is_whitelist, is_blacklist
-    """
     try:
         conn = sqlite3.connect(f"{db_name}")
         c = conn.cursor()
@@ -285,3 +281,6 @@ def command_to_param(command):
         return ["is_blacklist", False]
     else:
         return False
+    
+def clear_db():
+    

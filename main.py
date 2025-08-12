@@ -307,7 +307,7 @@ def about():
 @app.route("/server", methods=["POST", "GET"])
 @login_required
 def server_console():
-    system_data = server.system_monitoring()
+    system_data = None # server.system_monitoring()
     online_players = len(stmc.get_online())
     if request.method == "POST":
         console_input = request.form.get("console_input")

@@ -18,9 +18,9 @@ import datetime as dt
 # web-GUI для управлением сервером
 
 # Задачи:
-# - Сделать код более читаемый
+# - Сделать код более читаемый 
 # - Сделать интерфейс красивым
-# - Автоматизировать активацию rcon
+# - Автоматизировать активацию rcon (теперь добавить кнопку на странице настроек)
 # - Сделать страницу 'выбора' ядра:
 # - Сделать чистую переустановку ядра
 # - Прописать DEBUG-log  "[DEBUG: *time*] : 'что-то случилось'
@@ -66,20 +66,15 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             line = self.proccess.stdout.readline()
             if not line and self.proccess.poll() is not None:
                 break
+            if "INFO]: Thread RCON Client" in line:
+                break
             if line:
-                if "INFO]: Thread RCON Client" in line:
-                    break
-                if "You need to agree to the EULA in order to run the server" in line:
-                    stmc.agree_eula()
-                    self.kill_server()
-                    time.sleep(3)
-                    self.start_server()
                 stmc.add_line(line)
                 self.console_event_check(line)
                 socketio.start_background_task(
-                    socketio.emit, 
-                    'console_update', 
-                    {'line': line.strip()}, 
+                    socketio.emit,
+                    'console_update',
+                    {'line': line.strip()},
                     namespace='/server'
                 )    # Отправка события
                 print(line)  # Для отладки
@@ -102,7 +97,6 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             "disk_percent": f"{server.disk.percent}%"
         })
         
-
     def send_rcon_command(self, command: str):
         try:
             with MCRcon("localhost", "111111", 25575) as mcr:
@@ -125,6 +119,13 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             name = line_data[2].replace("[38;2;255;255;85m", "")
             stmc.set_status(name, "is_online", False)
             self.players = stmc.get_online()
+        if "You need to agree to the EULA in order to run the server" in line:
+            stmc.agree_eula()
+            self.kill_server()
+            time.sleep(3)
+            self.start_server()
+        if "This is the first time you're starting this server" in line:
+            self.enable_rcon()
             
     def is_server_running(self):
         """Проверяет, работает ли процесс сервера"""
@@ -178,6 +179,19 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         with open(properties_path, 'w', encoding='utf-8') as f:
             f.writelines(new_lines)
         return True
+    
+    def get_json(self, json_file):
+        # banned-ips.json
+        # banned-players.json
+        # ops.json
+        # usercache.json
+        # whitelist.json
+        # version_history.json
+        json_file = self.path + "\\" + json_file
+        f = open(json_file, "r", encoding="utf-8")
+    
+    def update_json(self, json_file, key, value):
+        pass
 
     def kill_server(self):
         self.proccess.terminate()
@@ -200,6 +214,20 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
 
     def rename_backup(self, name, new_name):
         stmc.rename(self.path + f"\\backups\\{name}", new_name)
+        
+    def get_properties_value(self, key):
+        properties_path = self.path + "\server.properties"
+        with open(properties_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                if '=' in line:
+                    current_key, value = line.split('=', 1)
+                    current_key = current_key.strip()
+                    if current_key == key:
+                        return value
+                    
+    def enable_rcon(self):
+        self.update_properties("rcon.password", 111111)
+        self.update_properties("enable-rcon=true", True)
 
 # Инициализация сервера
 server = server_manager()
@@ -290,6 +318,8 @@ def server_console():
             if command == "start":
                 if server.is_server_running() == False:
                     server.start_server()
+            elif command == "enable_rcon":
+                server.enable_rcon()
             else:
                 server.send_rcon_command(command)
         is_server_run = server.is_server_running()
@@ -324,11 +354,13 @@ def get_system():
 @app.route("/server/settings", methods=['GET', 'POST'])
 @login_required
 def server_settings():
-    properties_data = server.get_properties_data()
-    for i in range(len(properties_data)):
-        new_value = request.form.get(properties_data[i][0])
-        if new_value not in [None, "null", ""]:
-            server.update_properties(properties_data[i][0], new_value)
+    if request.method == "POST":
+        for i in range(len(properties_data)):
+            new_value = request.form.get(properties_data[i][0])
+            if new_value not in [None, "null", ""]:
+                server.update_properties(properties_data[i][0], new_value)
+        properties_data = server.get_properties_data()
+        return render_template("server_settings.html", properties_data=properties_data)
     else:
         properties_data = server.get_properties_data()
         return render_template("server_settings.html", properties_data=properties_data)
@@ -370,7 +402,7 @@ def server_files_to(path):
 @login_required
 def server_players():
     if request.method == "POST":
-        online_players = len(stmc.get_online())
+        online = [len(stmc.get_online()), server.get_properties_value("max-players")]
         username = request.form.get("username")
         command = request.form.get("value")
         if command not in [None, "null", ""]:
@@ -379,11 +411,11 @@ def server_players():
             if command:
                 stmc.set_status(username, command[0], command[1])
         players_data = stmc.get_all_players_data()
-        return render_template("server_players.html", players_data=players_data, online_players=online_players)
+        return render_template("server_players.html", players_data=players_data, online=online)
     else:
-        online_players = len(stmc.get_online())
+        online = [len(stmc.get_online()), server.get_properties_value("max-players")]
         players_data = stmc.get_all_players_data()
-        return render_template("server_players.html", players_data=players_data, online_players=online_players)
+        return render_template("server_players.html", players_data=players_data, online=online)
 
 # Страница со списком бекапов и возможностью их создавать
 @app.route("/server/backups")

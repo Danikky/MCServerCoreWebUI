@@ -8,7 +8,7 @@ Players
 {% block body %}
 
 <div class="alert alert-info">
-    <h1>Онлайн: {{online_players}}</h1>
+    <h1>Онлайн: {{online[0]}} / {{online[1]}}</h1>
     <h1>Список игроков: </h1>
     {% for el in players_data %} <!--el проходиться по всем игрокам на сервере-->
         {% if el[2] == 1 %}

@@ -7,7 +7,7 @@ Control panel
 {% block body %}
 <style>
     .console-container {
-        background-color: #1d1d1d; /* Темный фон контейнера */
+        background-color: #161515; /* Темный фон контейнера */
         border: 2px solid #404040;
         border-radius: 8px;
         padding: 10px;
@@ -80,7 +80,14 @@ Control panel
             </div>
         </div>
     </div>
-    <h1>Онлайн: {{online_players}}</h1>
+    <div class="text-center alert alert-info">
+        <h1>Онлайн: {{online_players}}</h1>
+    </div>
+    <div class="text-center mt-4">
+        <button type="submit" name="command" value="enable_rcon" class="btn btn-success btn-lg">
+            Включить RCON
+        </button>
+    </div>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const socket = io('/server');  // Указываем Namespace

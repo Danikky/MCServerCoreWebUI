@@ -291,7 +291,7 @@ def login():
 @app.route('/logout')
 @login_required
 def logout():
-    logout_user()
+    logout_user() 
     return redirect(url_for('index'))
 
 @app.route("/")
@@ -307,7 +307,7 @@ def about():
 @app.route("/server", methods=["POST", "GET"])
 @login_required
 def server_console():
-    system_data = None # server.system_monitoring()
+    system_data = None # server.system_monitoring() #
     online_players = len(stmc.get_online())
     if request.method == "POST":
         console_input = request.form.get("console_input")

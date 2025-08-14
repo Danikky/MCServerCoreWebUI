@@ -318,6 +318,8 @@ def server_console():
             if command == "start":
                 if server.is_server_running() == False:
                     server.start_server()
+            elif command == "kill":
+                server.kill_server()
             elif command == "enable_rcon":
                 server.enable_rcon()
             else:

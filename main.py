@@ -354,6 +354,7 @@ def get_system():
 @app.route("/server/settings", methods=['GET', 'POST'])
 @login_required
 def server_settings():
+    properties_data = server.get_properties_data()
     if request.method == "POST":
         for i in range(len(properties_data)):
             new_value = request.form.get(properties_data[i][0])
@@ -362,7 +363,6 @@ def server_settings():
         properties_data = server.get_properties_data()
         return render_template("server_settings.html", properties_data=properties_data)
     else:
-        properties_data = server.get_properties_data()
         return render_template("server_settings.html", properties_data=properties_data)
 
 # Управление файлами сервера (редактирование/создание/удаление файлов, директорий)
@@ -451,6 +451,6 @@ def server_map():
 
 # Для безопастного импорта файла(как библиотека) + run
 if __name__ == "__main__":
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5245, debug=True)
     # app.run(host='0.0.0.0', port=5000, debug=True) # НЕ ТРОГАТЬ ПОКА РАБОТАЕТ!!!
     

@@ -18,7 +18,8 @@ import datetime as dt
 # web-GUI для управлением сервером
 
 # Задачи:
-# - Сделать код более читаемый 
+# - сделать и поставить иконки для страниц
+# - Сделать код более читаемый
 # - Сделать интерфейс красивым
 # - Автоматизировать активацию rcon (теперь добавить кнопку на странице настроек)
 # - Сделать страницу 'выбора' ядра:
@@ -46,7 +47,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         
     def start_server(self):
         self.proccess = subprocess.Popen(
-            ['java', '-Xmx8024M', '-Xms1024M', '-jar', self.core, "nogui"], # аргументы запуска сервера
+            ['java', '-Xmx8256M', '-Xms8256M', '-jar', self.core, "nogui"], # аргументы запуска сервера
             cwd=self.path,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,

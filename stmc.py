@@ -37,6 +37,11 @@ def init_db():
     )
     """)
     
+    c.execute(""" CREATE TABLE IF NOT EXISTS tg (
+    id INTEGER PRIMARY KEY
+    )
+    """)
+    
     conn.commit()
     c.close()
     conn.close()
@@ -291,6 +296,32 @@ def clear_db():
         c.execute("DELETE * FROM players")
     except:
         print("Ошибка при чистке базы данных")
+    finally:
+        conn.commit()
+        c.close()
+        conn.close()
+
+def tg_auth(id):
+    try:
+        conn = sqlite3.connect(f"{db_name}")
+        c = conn.cursor()
+        c.execute("INSERT INTO tg (id) VALUES (?)", (id,))
+    except:
+        print("ошибка при авторизации в боте")
+    finally:
+        conn.commit()
+        c.close()
+        conn.close()
+
+def get_tg_users():
+    try:
+        conn = sqlite3.connect(f"{db_name}")
+        c = conn.cursor()
+        c.execute("SELECT id FROM tg")
+        users = c.fetchall()
+        return users
+    except:
+        print("ошибка при получении пользователей бота")
     finally:
         conn.commit()
         c.close()

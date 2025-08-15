@@ -105,6 +105,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                 stmc.add_line(command)
                 stmc.add_line(response)
                 print(f"Ответ сервера: {response}")
+                return response
         except Exception as e:
             print(f"Ошибка: {str(e)}", file=sys.stderr)
     

@@ -183,6 +183,13 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             f.writelines(new_lines)
         return True
     
+    def is_rcon_enable(self):
+        status = self.get_properties_value("enable-rcon")
+        if status == "true":
+            return True
+        else:
+            return False
+    
     def get_json(self, json_file):
         # banned-ips.json
         # banned-players.json
@@ -190,37 +197,41 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         # usercache.json
         # whitelist.json
         # version_history.json
-        json_file = self.path + "\\" + json_file
-        data_dicts = []
-        with open(json_file, 'r', encoding='utf-8') as file:
-            for line in file:  # Читаем построчно
-                line = line.strip()
-                if line:
-                    try:
-                        obj = json.loads(line)
-                        if isinstance(obj, dict):
-                            data_dicts.append(obj)
-                    except json.JSONDecodeError:
-                        continue  # Пропускаем некорректные строки
+        path = self.path + "\\" + json_file
+        try:
+            with open(path, 'r', encoding='utf-8') as file:
+                data = json.load(file)
+            return data
+        except:
+            print(f"ошибка при извлечении словаря из {json_file}")
+
+    def update_players_data(self):
+        usercahe = []
+        for i in self.get_json("usercache.json"):
+            usercahe.append(i)
+        whitelist = []
+        for i in self.get_json("whitelist.json"):
+            whitelist.append(i["name"])
+        oplist = []
+        for i in self.get_json("ops.json"):
+            oplist.append(i["name"])
+        banlist = []
+        for i in self.get_json("ops.json"):
+            banlist.append(i["name"])
+        if self.is_rcon_enable():
+            online = self.send_rcon_command("list")
+        else:
+            online = "Сервер выключен"
+        return [ # ЭТО СПИСКИ С ИМЕНАМИ!!!!!!
+                {"usercahe": usercahe}, 
+                {"whitelist": whitelist},
+                {"oplist": oplist},
+                {"banlist": banlist},
+                {"online": online}
+            ]
         
     def update_json(self, json_file, key, value):
         pass
-    
-    def is_rcon_enable(self):
-        status = self.get_properties_value("enable-rcon")
-        if status == "true":
-            return True
-        else:
-            return False
-
-    def update_players_data(self):
-        usercahe = self.get_json("usercache.json")
-        whitelist = self.get_json("whitelist.json")
-        ops = self.get_json("ops.json")
-        if self.is_rcon_enable():
-            online_players = self.send_rcon_command("list")
-        else:
-            False
             
     def kill_server(self):
         self.proccess.terminate()
@@ -260,6 +271,9 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
 
 # Инициализация сервера
 server = server_manager()
+print(server.get_json("banned-ips.json"))
+print(server.get_json("usercache.json"))
+
 
 @socketio.on('connect', namespace='/server')
 def handle_connect():

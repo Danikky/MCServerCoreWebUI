@@ -222,9 +222,9 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             online = self.send_rcon_command("list")
         else:
             online = "Сервер выключен"
-        return [ # ЭТО СПИСКИ С ИМЕНАМИ!!!!!!
-                {"usercahe": usercahe}, # usercahe["name"] , usercahe["uuid"]
-                {"whitelist": whitelist},
+        return [ # ЭТО СПИСКИ С ИМЕНАМИ!!!!!! ЧИТАЙ ФРОНТЕНДЕР!!!
+                {"usercahe": usercahe}, # usercahe[i]["name"] , usercahe[i]["uuid"]
+                {"whitelist": whitelist}, # whitelist[i] = <имя типа>
                 {"oplist": oplist},
                 {"banlist": banlist},
                 {"online": online}

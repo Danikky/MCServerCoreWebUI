@@ -223,11 +223,11 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         else:
             online = "Сервер выключен"
         return [ # ЭТО СПИСКИ С ИМЕНАМИ!!!!!! ЧИТАЙ ФРОНТЕНДЕР!!!
-                {"usercahe": usercahe}, # usercahe[i]["name"] , usercahe[i]["uuid"]
+                {"usercahe": usercahe}, # usercahe[i]["name"] = <имя типа> , usercahe[i]["uuid"] = <uuid>
                 {"whitelist": whitelist}, # whitelist[i] = <имя типа>
-                {"oplist": oplist},
-                {"banlist": banlist},
-                {"online": online}
+                {"oplist": oplist}, # oplist[i] = <имя типа>
+                {"banlist": banlist}, # banlist[i] = <имя типа>
+                {"online": online} # online[i] = <имя типа>
             ]
         
     def update_json(self, json_file, key, value):

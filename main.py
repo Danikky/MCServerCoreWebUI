@@ -223,7 +223,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         else:
             online = "Сервер выключен"
         return [ # ЭТО СПИСКИ С ИМЕНАМИ!!!!!!
-                {"usercahe": usercahe}, 
+                {"usercahe": usercahe}, # usercahe["name"] , usercahe["uuid"]
                 {"whitelist": whitelist},
                 {"oplist": oplist},
                 {"banlist": banlist},

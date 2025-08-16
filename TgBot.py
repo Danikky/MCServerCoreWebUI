@@ -25,7 +25,7 @@ def send_welcome(message):
 > /stop_server 
 > /kill_server (не работает)
 > /restart_server (не работает)
-> /online
+> /online (работает не корректно)
 > /system_monitor 
 > <command> # просто введи команду без '/' и она отправится (не работает)
 """)
@@ -33,12 +33,12 @@ def send_welcome(message):
 # /online
 @bot.message_handler(commands=['online']) 
 def send_online(message):
-    if message.chat.id in stmc.get_tg_users():
+    if (message.chat.id, ) in stmc.get_tg_users():
         if server.is_server_running():
             online = stmc.get_online()
             for i in range(len(online)):
                 online[i] = online + "\n"
-            bot.reply_to(message, f"""Список игроков:
+            bot.reply_to(message, f"""Игроки {len(stmc.get_online())}/{server.get_properties_data("max-players")}:
 {online}
 """)
         else:
@@ -49,7 +49,7 @@ def send_online(message):
 # /system_monitoring
 @bot.message_handler(commands=['system_monitor'])
 def send_system(message):
-    if message.chat.id in stmc.get_tg_users():
+    if (message.chat.id, ) in stmc.get_tg_users():
         if server.is_server_running():
             system = server.system_monitoring() # обновляет данные 
             bot.reply_to(message, f"""
@@ -74,7 +74,7 @@ DISK : {system["disk_used"]} / {system["disk_total"]} | {system["disk_percent"]}
 # /start_server
 @bot.message_handler(commands=['start_server'])
 def send_start(message):
-    if message.chat.id in stmc.get_tg_users():
+    if (message.chat.id, ) in stmc.get_tg_users():
         if server.is_server_running():
             bot.reply_to(message, "Сервер уже запущен")
         else:
@@ -86,7 +86,7 @@ def send_start(message):
 # /stop_server
 @bot.message_handler(commands=['stop_server'])
 def send_stop(message):
-    if message.chat.id in stmc.get_tg_users():
+    if (message.chat.id, ) in stmc.get_tg_users():
         if server.is_server_running():
             response = server.send_rcon_command("stop")
             bot.reply_to(message, f"Ответ сервера: {response}")
@@ -94,6 +94,7 @@ def send_stop(message):
             bot.reply_to(message, f"Сервер уже выключен")
     else:
         bot.reply_to(message, f"Вы не авторизованы")
+    
         
 # /auth
 @bot.message_handler(commands=['auth'])

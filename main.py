@@ -130,7 +130,6 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             self.enable_rcon()
             
     def is_server_running(self):
-        """Проверяет, работает ли процесс сервера"""
         for proc in psutil.process_iter():
             try:
                 if "java" in proc.name().lower():
@@ -194,7 +193,23 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     
     def update_json(self, json_file, key, value):
         pass
+    
+    def is_rcon_enable(self):
+        status = self.get_properties_value("enable-rcon")
+        if status == "true":
+            return True
+        else:
+            return False
 
+    def update_players_data(self):
+        self.get_json("usercache.json")
+        self.get_json("whitelist.json")
+        self.get_json("ops.json")
+        if self.is_rcon_enable():
+            pass
+        else:
+            False
+            
     def kill_server(self):
         self.proccess.terminate()
         time.sleep(1)
@@ -229,7 +244,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                     
     def enable_rcon(self):
         self.update_properties("rcon.password", 111111)
-        self.update_properties("enable-rcon=true", True)
+        self.update_properties("enable-rcon", "true")
 
 # Инициализация сервера
 server = server_manager()

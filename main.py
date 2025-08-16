@@ -13,6 +13,7 @@ import time
 from werkzeug.security import generate_password_hash, check_password_hash
 import stmc
 import datetime as dt
+import json
 
 # Направление сайта - 
 # web-GUI для управлением сервером
@@ -30,6 +31,7 @@ import datetime as dt
 # - Выводить на панель управления информанци об онлайне, ОЗУ, RAM, сети, IP, статусы РЕАЛ ТАЙМ
 # - Сделать логирование и архивирование консольного вывода, по циклам работы ядра
 # - Переписать страницу управления игроками под работу с json а не с БД
+# - Сделать так, чтобы в консольном output input работали раусские символы
 
 stmc.init_db()
 app = Flask(__name__)
@@ -189,8 +191,18 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         # whitelist.json
         # version_history.json
         json_file = self.path + "\\" + json_file
-        f = open(json_file, "r", encoding="utf-8")
-    
+        data_dicts = []
+        with open(json_file, 'r', encoding='utf-8') as file:
+            for line in file:  # Читаем построчно
+                line = line.strip()
+                if line:
+                    try:
+                        obj = json.loads(line)
+                        if isinstance(obj, dict):
+                            data_dicts.append(obj)
+                    except json.JSONDecodeError:
+                        continue  # Пропускаем некорректные строки
+        
     def update_json(self, json_file, key, value):
         pass
     
@@ -202,11 +214,11 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             return False
 
     def update_players_data(self):
-        self.get_json("usercache.json")
-        self.get_json("whitelist.json")
-        self.get_json("ops.json")
+        usercahe = self.get_json("usercache.json")
+        whitelist = self.get_json("whitelist.json")
+        ops = self.get_json("ops.json")
         if self.is_rcon_enable():
-            pass
+            online_players = self.send_rcon_command("list")
         else:
             False
             

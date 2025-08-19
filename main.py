@@ -63,6 +63,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             daemon=True
         )
         self.reader_thread.start()
+        self.start_tg_bot()
     
     def start_tg_bot(self):
         self.proccess = subprocess.Popen(

@@ -55,8 +55,8 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=0,
-            universal_newlines=True,
-            encoding='utf-8' # Новый параметр
+            universal_newlines=True
+            # encoding='utf-8' # Новый параметр
         )
         self.reader_thread = threading.Thread(
             target=self.get_console_output,

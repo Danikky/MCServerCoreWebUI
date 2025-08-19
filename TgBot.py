@@ -23,11 +23,11 @@ def send_welcome(message):
 > /auth <key> # авторизация в системе
 > /start_server 
 > /stop_server 
-> /kill_server (не работает)
-> /restart_server (не работает)
-> /online (работает не корректно)
+> /kill_server
+> /restart_server
+> /online
 > /system_monitor 
-> <command> # просто введи команду без '/' и она отправится (не работает)
+> /command <команда> # '/' перед командой писать не надо
 """)
 
 # /online
@@ -61,15 +61,28 @@ DISK : {system["disk_used"]} / {system["disk_total"]} | {system["disk_percent"]}
             bot.reply_to(message, f"Сервер выключен")
     else:
         bot.reply_to(message, f"Вы не авторизованы")
+
+# /kill_server
+@bot.message_handler(commands=['kill_server'])
+def kill_server_(message):
+    if (message.chat.id, ) in stmc.get_tg_users():
+        if server.is_server_running():
+            server.kill_server()
+            bot.reply_to(message, f"Сервер был неаккуратно выключен")
+        else:
+            bot.reply_to(message, f"Сервер выключен")
+    else:
+        bot.reply_to(message, f"Вы не авторизованы")
     
 # /command
-# @bot.message_handler(content_types="text")
-# def send_command(message):
-#     if server.is_server_running():
-#         response = server.send_rcon_command(message.text)
-#         bot.reply_to(message, f"Ответ сервера: {response}")
-#     else:
-#         bot.reply_to(message, f"Сервер выключен")
+@bot.message_handler(func=lambda msg: msg.text.startswith('/command ') or msg.text.startswith('!command '))
+def send_command(message):
+    if server.is_server_running():
+        user_command = message.text.split(maxsplit=1)[1]
+        response = server.send_rcon_command(user_command)
+        bot.reply_to(message, f"Ответ сервера: {response}")
+    else:
+        bot.reply_to(message, f"Сервер выключен")
 
 # /start_server
 @bot.message_handler(commands=['start_server'])

@@ -40,7 +40,6 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def __init__(self):
-        # self._kill_processes_locking_file(os.path.join(path, "world", "session.lock"))
         stmc.set_all_offline()
         self.path = os.path.join(stmc.return_main_dir(), "server") # путь к папке сервера
         for i in os.listdir(self.path):
@@ -56,13 +55,32 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=0,
-            universal_newlines=True
+            universal_newlines=True,
+            encoding='utf-8' # Новый параметр
         )
         self.reader_thread = threading.Thread(
             target=self.get_console_output,
             daemon=True
         )
         self.reader_thread.start()
+    
+    def start_tg_bot(self):
+        self.proccess = subprocess.Popen(
+            ["python", "TgBot.py"], # аргументы запуска сервера
+            cwd=stmc.return_main_dir(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=0,
+            universal_newlines=True,
+            encoding='utf-8' # Новый параметр
+        )
+        # хз надо ли это
+        # self.reader_thread = threading.Thread(
+        #     target=self.get_console_output,
+        #     daemon=True
+        # )
+        # self.reader_thread.start()
     
     def get_console_output(self):
         while True:

@@ -290,9 +290,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
 
 # Инициализация сервера
 server = server_manager()
-print(server.get_json("banned-ips.json"))
-print(server.get_json("usercache.json"))
-
+# Важны момент!
 
 @socketio.on('connect', namespace='/server')
 def handle_connect():

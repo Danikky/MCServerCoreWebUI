@@ -48,15 +48,17 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         
     def start_server(self):
         self.proccess = subprocess.Popen(
-            ['java', '-Xmx8256M', '-Xms8256M', '-jar', self.core, "nogui"], # аргументы запуска сервера
+            # Xmx - максиммальный, Xms - стартовый
+            ["java", "-Xmx16256M", "-Xms8256M", "-jar", self.core, "nogui"], # аргументы запуска сервера
             cwd=self.path,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=0,
-            universal_newlines=True
-            # encoding='utf-8' # Новый параметр
+            universal_newlines=True,
+            encoding="utf-8", # Новый параметр
+            errors="replace" # Новый параметр
         )
         self.reader_thread = threading.Thread(
             target=self.get_console_output,
@@ -73,7 +75,8 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             text=True,
             bufsize=0,
             universal_newlines=True,
-            encoding='utf-8' # Новый параметр
+            encoding='utf-8', # Новый параметр
+            errors="replace"
         )
         # хз надо ли это
         # self.reader_thread = threading.Thread(

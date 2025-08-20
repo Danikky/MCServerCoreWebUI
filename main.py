@@ -57,7 +57,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             text=True,
             bufsize=0,
             universal_newlines=True,
-            encoding="UTF-8", # Новый параметр
+            encoding="utf-8", # Новый параметр
             errors="replace" # Новый параметр
         )
         self.reader_thread = threading.Thread(

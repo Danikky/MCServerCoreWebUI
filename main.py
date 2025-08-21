@@ -140,14 +140,15 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             self.start_server()
         if "This is the first time you're starting this server" in line:
             self.enable_rcon()
-        for i in self.get_json("usercache.json"):
-            if i["name"] in line:
-                if "join" in line:
-                    stmc.set_status(i["name"], "is_online", True)
-                    stmc.reg_player(i["name"])
-                if "left" in line:
-                    stmc.set_status(i["name"], "is_online", False)
-                self.players = stmc.get_online()
+        if "join" in line or "left" in line:
+            for i in self.get_json("usercache.json"):
+                if i["name"] in line:
+                    if "join" in line:
+                        stmc.reg_player(i["name"])
+                        stmc.set_status(i["name"], "is_online", True)
+                    if "left" in line:
+                        stmc.set_status(i["name"], "is_online", False)
+                    self.players = stmc.get_online()
             
             
     def is_server_running(self):

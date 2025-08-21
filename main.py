@@ -133,17 +133,6 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             print(f"Ошибка: {str(e)}", file=sys.stderr)
     
     def console_event_check(self, line: str):
-        if "joined the game" in line:
-            line_data = line.split() # разделяет строку на список по пробелам
-            name = line_data[2].replace("[38;2;255;255;85m", "")
-            stmc.reg_player(name)
-            stmc.set_status(name, "is_online", True)
-            self.players = stmc.get_online()     
-        if "left the game" in line:
-            line_data = line.split() # разделяет строку на список по пробелам
-            name = line_data[2].replace("[38;2;255;255;85m", "")
-            stmc.set_status(name, "is_online", False)
-            self.players = stmc.get_online()
         if "You need to agree to the EULA in order to run the server" in line:
             stmc.agree_eula()
             self.kill_server()
@@ -158,6 +147,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                     stmc.reg_player(i["name"])
                 if "left" in line:
                     stmc.set_status(i["name"], "is_online", False)
+                self.players = stmc.get_online()
             
             
     def is_server_running(self):

@@ -33,10 +33,6 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def __init__(self):
-        try:
-            self.start_tg_bot()
-        except:
-            self.log_error("Ошибка при запуске тг бота")
         stmc.set_all_offline()
         self.path = os.path.join(stmc.return_main_dir(), "server") # путь к папке сервера
         for i in os.listdir(self.path):

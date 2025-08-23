@@ -130,11 +130,11 @@ def send_players_data(message):
     if (message.chat.id, ) in stmc.get_tg_users():
         data = server.update_players_data()
         bot.reply_to(message, f"""
-Players: <нет данных>
-Banned: <нет данных>
+Players: {data["usercache"]}
+Banned: {data["banlist"]}
 ip-Banned: <нет данных>
-Ops: <нет данных>
-Whitelist: <нет данных>
+Ops: {data["oplist"]}
+Whitelist: {data["whitelist"]}
 """)
     else:
         bot.reply_to(message, f"Вы не авторизованы")

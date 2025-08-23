@@ -15,23 +15,16 @@ import stmc
 import datetime as dt
 import json
 
-# Направление сайта - 
-# web-GUI для управлением сервером
-
 # Задачи:
 # - сделать и поставить иконки для страниц
-# - Сделать код более читаемый
 # - Сделать интерфейс красивым
-# - Автоматизировать активацию rcon (теперь добавить кнопку на странице настроек)
 # - Сделать страницу 'выбора' ядра:
 # - Сделать чистую переустановку ядра
-# - Прописать DEBUG-log  "[DEBUG: *time*] : 'что-то случилось'
 # - Сделать автоотчистку БД + отдельный интерфейс с кнопкой 'сброс'
 # - Сделать возможность работать с несколькими ядрами одновременно
 # - Выводить на панель управления информанци об онлайне, ОЗУ, RAM, сети, IP, статусы РЕАЛ ТАЙМ
 # - Сделать логирование и архивирование консольного вывода, по циклам работы ядра
-# - Переписать страницу управления игроками под работу с json а не с БД
-# - Сделать так, чтобы в консольном output input работали раусские символы
+# - Сдедать консоль-ввод по вебсокету
 
 stmc.init_db()
 app = Flask(__name__)
@@ -40,6 +33,10 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def __init__(self):
+        try:
+            self.start_tg_bot()
+        except:
+            self.log_error("Ошибка при запуске тг бота")
         stmc.set_all_offline()
         self.path = os.path.join(stmc.return_main_dir(), "server") # путь к папке сервера
         for i in os.listdir(self.path):
@@ -67,7 +64,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         self.reader_thread.start()
     
     def start_tg_bot(self):
-        self.proccess = subprocess.Popen(
+        self.tg_proccess = subprocess.Popen(
             ["python", "TgBot.py"], # аргументы запуска сервера
             cwd=stmc.return_main_dir(),
             stdout=subprocess.PIPE,
@@ -87,21 +84,26 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     
     def get_console_output(self):
         while True:
-            line = self.proccess.stdout.readline()
-            if not line and self.proccess.poll() is not None:
-                break
-            if "INFO]: Thread RCON Client" in line:
-                break
-            if line:
-                stmc.add_line(line)
-                self.console_event_check(line)
-                socketio.start_background_task(
-                    socketio.emit,
-                    'console_update',
-                    {'line': line.strip()},
-                    namespace='/server'
-                )    # Отправка события
-                print(line)  # Для отладки
+            try:
+                line = self.proccess.stdout.readline()
+                if not line and self.proccess.poll() is not None:
+                    break
+                if "INFO]: Thread RCON Client" in line:
+                    break
+                if line:
+                    stmc.add_line(line)
+                    self.console_event_check(line)
+                    socketio.start_background_task(
+                        socketio.emit,
+                        'console_update',
+                        {'line': line.strip()},
+                        namespace='/server'
+                    )    # Отправка события
+                    print(line)  # Для отладки
+            except:
+                error = "Ошибка в работе 'get_console_output'"
+                stmc.add_line(error)
+                print(error)
     
     def system_monitoring(self):
         self.cpu = psutil.cpu_percent(interval=1)
@@ -288,6 +290,10 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def enable_rcon(self):
         self.update_properties("rcon.password", 111111)
         self.update_properties("enable-rcon", "true")
+    
+    def log_error(self, error):
+        stmc.add_line(error)
+        print(error)
 
 # Инициализация сервера
 server = server_manager()

@@ -28,6 +28,7 @@ def send_welcome(message):
 > /online
 > /system_monitor 
 > /command <команда> # '/' перед командой писать не надо
+> /players_data
 """)
 
 # /online
@@ -124,6 +125,19 @@ def send_auth(message):
         else:
             bot.reply_to(message, f"Неверный ключ")
 
+# /players_data
+def send_players_data(message):
+    if (message.chat.id, ) in stmc.get_tg_users():
+        data = server.update_players_data()
+        bot.reply_to(message, f"""
+Players: <нет данных>
+Banned: <нет данных>
+ip-Banned: <нет данных>
+Ops: <нет данных>
+Whitelist: <нет данных>
+""")
+    else:
+        bot.reply_to(message, f"Вы не авторизованы")
 
 # работа бота
 if __name__ == "__main__":

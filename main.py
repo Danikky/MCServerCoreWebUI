@@ -84,26 +84,21 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     
     def get_console_output(self):
         while True:
-            try:
-                line = self.proccess.stdout.readline()
-                if not line and self.proccess.poll() is not None:
-                    break
-                if "INFO]: Thread RCON Client" in line:
-                    break
-                if line:
-                    stmc.add_line(line)
-                    self.console_event_check(line)
-                    socketio.start_background_task(
-                        socketio.emit,
-                        'console_update',
-                        {'line': line.strip()},
-                        namespace='/server'
-                    )    # Отправка события
-                    print(line)  # Для отладки
-            except:
-                error = "Ошибка в работе 'get_console_output'"
-                stmc.add_line(error)
-                print(error)
+            line = self.proccess.stdout.readline()
+            if not line and self.proccess.poll() is not None:
+                break
+            if "INFO]: Thread RCON Client" in line:
+                break
+            if line:
+                stmc.add_line(line)
+                self.console_event_check(line)
+                socketio.start_background_task(
+                    socketio.emit,
+                    'console_update',
+                    {'line': line.strip()},
+                    namespace='/server'
+                )    # Отправка события
+                print(line)  # Для отладки
     
     def system_monitoring(self):
         self.cpu = psutil.cpu_percent(interval=1)

@@ -14,6 +14,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import stmc
 import datetime as dt
 import json
+import telebot
 
 # Задачи:
 # - сделать и поставить иконки для страниц
@@ -33,11 +34,11 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def __init__(self):
-        stmc.set_all_offline()
         self.path = os.path.join(stmc.return_main_dir(), "server") # путь к папке сервера
         for i in os.listdir(self.path):
             if ".jar" in i:
                 self.core = i
+        self.online = []
         
     def start_server(self):
         self.proccess = subprocess.Popen(
@@ -50,8 +51,8 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             text=True,
             bufsize=0,
             universal_newlines=True,
-            encoding="utf-8", # Новый параметр
-            errors="replace" # Новый параметр
+            encoding="utf-8",
+            errors="replace"
         )
         self.reader_thread = threading.Thread(
             target=self.get_console_output,
@@ -59,31 +60,10 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         )
         self.reader_thread.start()
     
-    def start_tg_bot(self):
-        self.tg_proccess = subprocess.Popen(
-            ["python", "TgBot.py"], # аргументы запуска сервера
-            cwd=stmc.return_main_dir(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=0,
-            universal_newlines=True,
-            encoding='utf-8', # Новый параметр
-            errors="replace"
-        )
-        # хз надо ли это
-        # self.reader_thread = threading.Thread(
-        #     target=self.get_console_output,
-        #     daemon=True
-        # )
-        # self.reader_thread.start()
-    
     def get_console_output(self):
         while True:
             line = self.proccess.stdout.readline()
             if not line and self.proccess.poll() is not None:
-                break
-            if "INFO]: Thread RCON Client" in line:
                 break
             if line:
                 stmc.add_line(line)
@@ -93,8 +73,29 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                     'console_update',
                     {'line': line.strip()},
                     namespace='/server'
-                )    # Отправка события
-                print(line)  # Для отладки
+                )
+                print(line)
+    
+    def send_command_direct(self, command: str) -> str: # Отправка команды напрямую через stdin
+        if not self.proccess or self.proccess.poll() is not None:
+            return "Сервер не запущен"
+        try:
+            self.proccess.stdin.write(command + '\n')
+            self.proccess.stdin.flush()
+            time.sleep(0.1)
+            output_lines = []
+            while True:
+                line = self.proccess.stdout.readline()
+                if not line:
+                    break
+                output_lines.append(line)
+                if len(output_lines) > 20:
+                    output_lines.pop(0)
+            return ''.join(output_lines[-5:]) # Возвращается последние 5 строк!!!
+        except Exception as e:
+            stmc.add_line(f"Ошибка отправки команды: {str(e)}")
+            print(f"[DEBUG: <time>] - {e}")
+            return f"Ошибка отправки команды: {str(e)}"
     
     def system_monitoring(self):
         self.cpu = psutil.cpu_percent(interval=1)
@@ -113,17 +114,6 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             "disk_free": f"{round(server.disk.free / (1024 ** 3), 1)} GB",
             "disk_percent": f"{server.disk.percent}%"
         })
-        
-    def send_rcon_command(self, command: str):
-        try:
-            with MCRcon("localhost", "111111", 25575) as mcr:
-                response = mcr.command(command)
-                stmc.add_line(command)
-                stmc.add_line(response)
-                print(f"Ответ сервера: {response}")
-                return response
-        except Exception as e:
-            print(f"Ошибка: {str(e)}", file=sys.stderr)
     
     def console_event_check(self, line: str):
         if "You need to agree to the EULA in order to run the server" in line:
@@ -131,18 +121,13 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             self.kill_server()
             time.sleep(3)
             self.start_server()
-        if "This is the first time you're starting this server" in line:
-            self.enable_rcon()
         if "join" in line or "left" in line:
             for i in self.get_json("usercache.json"):
                 if i["name"] in line:
                     if "join" in line:
-                        stmc.reg_player(i["name"])
-                        stmc.set_status(i["name"], "is_online", True)
+                        self.online.append(i["name"])
                     if "left" in line:
-                        stmc.set_status(i["name"], "is_online", False)
-                    self.players = stmc.get_online()
-            
+                        self.online.remove(i["name"])
             
     def is_server_running(self):
         for proc in psutil.process_iter():
@@ -196,13 +181,6 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             f.writelines(new_lines)
         return True
     
-    def is_rcon_enable(self):
-        status = self.get_properties_value("enable-rcon")
-        if status == "true":
-            return True
-        else:
-            return False
-    
     def get_json(self, json_file):
         # banned-ips.json
         # banned-players.json
@@ -219,9 +197,9 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             print(f"ошибка при извлечении словаря из {json_file}")
 
     def update_players_data(self):
-        usercahe = []
+        usercaсhe = []
         for i in self.get_json("usercache.json"):
-            usercahe.append(i)
+            usercaсhe.append(i)
         whitelist = []
         for i in self.get_json("whitelist.json"):
             whitelist.append(i["name"])
@@ -231,17 +209,13 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         banlist = []
         for i in self.get_json("ops.json"):
             banlist.append(i["name"])
-        if self.is_rcon_enable():
-            online = self.send_rcon_command("list")
-        else:
-            online = "Сервер выключен"
-        return [ # ЭТО СПИСКИ С ИМЕНАМИ!!!!!! ЧИТАЙ ФРОНТЕНДЕР!!!
-                {"usercahe": usercahe}, # usercahe[i]["name"] = <имя типа> , usercahe[i]["uuid"] = <uuid>
-                {"whitelist": whitelist}, # whitelist[i] = <имя типа>
-                {"oplist": oplist}, # oplist[i] = <имя типа>
-                {"banlist": banlist}, # banlist[i] = <имя типа>
-                {"online": online} # online[i] = <имя типа>
-            ]
+        return { # ЭТО СПИСКИ С ИМЕНАМИ!!!!!! ЧИТАЙ ФРОНТЕНДЕР!!!
+            "usercaсhe": usercaсhe, # usercahe[i]["name"] = <имя типа> , usercahe[i]["uuid"] = <uuid>
+            "whitelist": whitelist, # whitelist[i] = <имя типа>
+            "oplist": oplist, # oplist[i] = <имя типа>
+            "banlist": banlist, # banlist[i] = <имя типа>
+            "online": self.online # online[i] = <имя типа>
+        }
         
     def update_json(self, json_file, key, value):
         pass
@@ -277,10 +251,6 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                     current_key = current_key.strip()
                     if current_key == key:
                         return value
-                    
-    def enable_rcon(self):
-        self.update_properties("rcon.password", 111111)
-        self.update_properties("enable-rcon", "true")
     
     def log_error(self, error):
         stmc.add_line(error)
@@ -371,20 +341,22 @@ def server_console():
         console_input = request.form.get("console_input")
         command = request.form.get("command")
         if console_input not in [None, "null", ""]:
-            server.send_rcon_command(console_input)
+            server.send_command_direct(console_input)
         if command not in [None, "null", ""]:
             if command == "start":
                 if server.is_server_running() == False:
                     server.start_server()
             elif command == "stop":
                 if server.is_server_running() == True:
-                    server.send_rcon_command("stop")
+                    server.send_command_direct("stop")
             elif command == "kill":
-                server.kill_server()
-            elif command == "enable_rcon":
-                server.enable_rcon()
+                try:
+                    server.kill_server()
+                except:
+                    print("Ошибка при убийстве сервера")
+                    stmc.add_line("Ошибка при убийстве сервера")
             else:
-                server.send_rcon_command(command)
+                server.send_command_direct(command)
         is_server_run = server.is_server_running()
         return render_template("control_panel.html", is_server_run=is_server_run, system_data=system_data, online_players=online_players)
     else:
@@ -397,21 +369,6 @@ def get_console_history():
     console_data = stmc.get_console_output()
     history = [line[0] for line in console_data]
     return jsonify({'history': history})
-
-@app.route("/get_system")
-def get_system():
-    return jsonify({
-        "cpu_percent": f"{server.cpu}%",
-        "cpu_cores": server.cpu_cores,
-        "ram_total": f"{round(server.memory.total / (1024 ** 3), 1)} GB",
-        "ram_used": f"{round(server.memory.used / (1024 ** 3), 1)} GB",
-        "ram_available": f"{round(server.memory.available / (1024 ** 3), 1)} GB",
-        "ram_percent": f"{server.memory.percent}%",
-        "disk_total": f"{round(server.disk.total / (1024 ** 3), 1)} GB",
-        "disk_used": f"{round(server.disk.used / (1024 ** 3), 1)} GB",
-        "disk_free": f"{round(server.disk.free / (1024 ** 3), 1)} GB",
-        "disk_percent": f"{server.disk.percent}%"
-    })
     
 # Настройка сервера
 @app.route("/server/settings", methods=['GET', 'POST'])
@@ -465,19 +422,12 @@ def server_files_to(path):
 @login_required
 def server_players():
     if request.method == "POST":
-        online = [len(stmc.get_online()), server.get_properties_value("max-players")]
-        username = request.form.get("username")
-        command = request.form.get("value")
-        if command not in [None, "null", ""]:
-            server.send_rcon_command(command+" "+username)
-            command = stmc.command_to_param(command)
-            if command:
-                stmc.set_status(username, command[0], command[1])
-        players_data = stmc.get_all_players_data()
+        online = [len(server.online), server.get_properties_value("max-players")]
+        players_data = server.update_players_data()
         return render_template("server_players.html", players_data=players_data, online=online)
     else:
-        online = [len(stmc.get_online()), server.get_properties_value("max-players")]
-        players_data = stmc.get_all_players_data()
+        online = [len(server.online), server.get_properties_value("max-players")]
+        players_data = server.update_players_data()
         return render_template("server_players.html", players_data=players_data, online=online)
 
 # Страница со списком бекапов и возможностью их создавать

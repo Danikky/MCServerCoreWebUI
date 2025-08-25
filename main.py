@@ -102,7 +102,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         self.cpu_cores = psutil.cpu_count(logical=True)
         self.memory = psutil.virtual_memory()
         self.disk = psutil.disk_usage('/')
-        return ({
+        return {
             "cpu_percent": f"{server.cpu}%",
             "cpu_cores": server.cpu_cores,
             "ram_total": f"{round(server.memory.total / (1024 ** 3), 1)} GB",
@@ -113,7 +113,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             "disk_used": f"{round(server.disk.used / (1024 ** 3), 1)} GB",
             "disk_free": f"{round(server.disk.free / (1024 ** 3), 1)} GB",
             "disk_percent": f"{server.disk.percent}%"
-        })
+        }
     
     def console_event_check(self, line: str):
         if "You need to agree to the EULA in order to run the server" in line:

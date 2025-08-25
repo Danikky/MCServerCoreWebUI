@@ -207,7 +207,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         for i in self.get_json("ops.json"):
             oplist.append(i["name"])
         banlist = []
-        for i in self.get_json("ops.json"):
+        for i in self.get_json("banned-players.json"):
             banlist.append(i["name"])
         return { # ЭТО СПИСКИ С ИМЕНАМИ!!!!!! ЧИТАЙ ФРОНТЕНДЕР!!!
             "usercaсhe": usercaсhe, # usercahe[i]["name"] = <имя типа> , usercahe[i]["uuid"] = <uuid>

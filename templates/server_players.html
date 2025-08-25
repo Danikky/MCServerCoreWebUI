@@ -15,7 +15,11 @@ Players
             {% for el in players_data["online"] %}
                 <div class="alert alert-info">
                     <h3>{{el}}</h3>
-                    <h4>{{players_data["usercache"]}}</h4>
+                    <h4>{{players_data["usercache"]}}
+                        <button class="btn btn-success" name="command" value="op">op</button>
+                        <button class="btn btn-danger" name="command" value="kick">kick</button>
+                        <button class="btn btn-danger" name="command" value="ban">ban</button>
+                    </h4>
                 </div>
             {% endfor %}
         </div>

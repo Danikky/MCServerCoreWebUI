@@ -336,7 +336,7 @@ def about():
 @login_required
 def server_console():
     system_data = None # server.system_monitoring() #
-    online_players = len(stmc.get_online())
+    online_players = server.online
     if request.method == "POST":
         console_input = request.form.get("console_input")
         command = request.form.get("command")

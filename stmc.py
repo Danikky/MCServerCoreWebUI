@@ -139,17 +139,6 @@ def add_line(line):
         conn = sqlite3.connect(f"{db_name}")
         c = conn.cursor()
         c.execute("INSERT INTO console_output (line) VALUES (?)", (line,))
-        c.execute("SELECT COUNT(*) FROM console_output")
-        count = c.fetchone()[0]
-        if count > 2000:
-            c.execute("""
-                DELETE FROM console_output 
-                WHERE id NOT IN (
-                    SELECT id FROM console_output 
-                    ORDER BY id DESC 
-                    LIMIT 2000
-                )
-            """)
     except Exception as e:
         print(f"При добавлении линии произошла ошибка: {e}")
     finally:

@@ -19,19 +19,6 @@ def init_db():
     )
     """)
     
-    c.execute("""CREATE TABLE IF NOT EXISTS players
-    (id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    is_online BOOLEAN DEFAULT FALSE,
-    is_op BOOLEAN DEFAULT FALSE,
-    is_banned BOOLEAN DEFAULT FALSE,
-    is_ip_banned BOOLEAN DEFAULT FALSE,
-    is_vip BOOLEAN DEFAULT FALSE,        
-    is_whitelist BOOLEAN DEFAULT FALSE,
-    is_blacklist BOOLEAN DEFAULT FALSE
-    )
-    """)
-    
     c.execute(""" CREATE TABLE IF NOT EXISTS console_output (
     line TEXT NOT NULL
     )
@@ -78,62 +65,6 @@ def login(username):
         c.close()
         conn.close()
 
-# Зашёл первый раз (скрипт проверил)
-def reg_player(username):
-    try:
-        conn = sqlite3.connect(f"{db_name}")
-        c = conn.cursor()
-        c.execute("INSERT INTO players (username) VALUES (?)", (username,))
-    except:
-        return None
-    finally:
-        conn.commit()
-        c.close()
-        conn.close()
-        
-def set_status(username, status, value):
-    try:
-        conn = sqlite3.connect(f"{db_name}")
-        c = conn.cursor()
-        c.execute(f"UPDATE players SET {status} = ? WHERE username = ?", (value, username))
-    except:
-        print("ошибка при обновлении статуса")
-    finally:
-        conn.commit()
-        c.close()
-        conn.close()
-        
-def get_online():
-    try:
-        conn = sqlite3.connect(f"{db_name}")
-        c = conn.cursor()
-        c.execute("SELECT * FROM players WHERE is_online = 1")
-        online = c.fetchall()
-        if online != None:
-            return online
-        else:
-            return 0
-    except:
-        print("Не удалось получить список онлайн игрков")
-    finally:
-        conn.commit()
-        c.close()
-        conn.close()
-        
-def get_all_players_data():
-    try:
-        conn = sqlite3.connect(f"{db_name}")
-        c = conn.cursor()
-        c.execute("SELECT * FROM players")
-        players_data = c.fetchall()
-        return players_data
-    except:
-        return None
-    finally:
-        conn.commit()
-        c.close()
-        conn.close()
-
 def add_line(line):
     try:
         conn = sqlite3.connect(f"{db_name}")
@@ -170,19 +101,6 @@ def get_console_output():
         conn.commit()
         c.close()
         conn.close()
-
-def set_all_offline():
-    for i in get_all_players_data():
-        try:
-            conn = sqlite3.connect(f"{db_name}")
-            c = conn.cursor()
-            c.execute(f"UPDATE players SET is_online = False WHERE username = ?", (i[1],))
-        except:
-            print("ошибка при обновлении статуса")
-        finally:
-            conn.commit()
-            c.close()
-            conn.close()
             
 def return_main_dir():
     if getattr(sys, 'frozen', False):
@@ -277,40 +195,6 @@ def agree_eula():
                 new_lines.append(line)
     with open(return_main_dir()+"\server\eula.txt", 'w', encoding='utf-8') as f:
         f.writelines(new_lines)
-
-def command_to_param(command):
-    if command == "op":
-        return ["is_op", True]
-    elif command == "deop":
-        return ["is_op", False]
-    elif command == "ban":
-        return ["is_banned", True]
-    elif command == "pardon":
-        return ["is_banned", False]
-    elif command == "whitelist add":
-        return ["is_whitelist", True]
-    elif command == "whitelist remove":
-        return ["is_whitelist", False]
-    elif command == "blacklist add":
-        return ["is_blacklist", True]
-    elif command == "blacklist remove":
-        return ["is_blacklist", False]
-    else:
-        return False
-    
-def clear_db():
-    try:
-        conn = sqlite3.connect(f"{db_name}")
-        c = conn.cursor()
-        c.execute("DELETE * FROM console_output")
-        c.execute("DELETE * FROM users")
-        c.execute("DELETE * FROM players")
-    except:
-        print("Ошибка при чистке базы данных")
-    finally:
-        conn.commit()
-        c.close()
-        conn.close()
 
 def tg_auth(id):
     try:

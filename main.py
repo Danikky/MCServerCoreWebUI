@@ -15,17 +15,8 @@ import stmc
 import datetime as dt
 import json
 import telebot
-
-# Задачи:
-# - сделать и поставить иконки для страниц
-# - Сделать интерфейс красивым
-# - Сделать страницу 'выбора' ядра:
-# - Сделать чистую переустановку ядра
-# - Сделать автоотчистку БД + отдельный интерфейс с кнопкой 'сброс'
-# - Сделать возможность работать с несколькими ядрами одновременно
-# - Выводить на панель управления информанци об онлайне, ОЗУ, RAM, сети, IP, статусы РЕАЛ ТАЙМ
-# - Сделать логирование и архивирование консольного вывода, по циклам работы ядра
-# - Сдедать консоль-ввод по вебсокету
+import requests
+from openai import OpenAI
 
 stmc.init_db()
 app = Flask(__name__)
@@ -39,6 +30,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             if ".jar" in i:
                 self.core = i
         self.online = []
+        client = OpenAI(base_url="http://127.0.0.1:1234/v1", api_key="lm-studio")
         
     def start_server(self):
         self.proccess = subprocess.Popen(
@@ -252,13 +244,58 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                     if current_key == key:
                         return value
     
-    def log_error(self, error):
-        stmc.add_line(error)
-        print(error)
+    def send_to_ai(self, messages, model=None):
+        system = self.system_monitoring()
+        players_data = self.update_players_data()
+        system_info = f"""Ты - искуственный интелект, который помогает пользователю управлять сервером.
+Ты не можешь выполнять каких либо действий на сервере, ты только отвечаешь на вопросы пользователя
+Информация о сервере:
+Состояние сервера: {self.is_server_running()}
+Ядро сервера: {self.core}
+настройки сервера: {stmc.get_pro}
+Онлайн: {len(self.online)} / {self.get_properties_value("max-players")}
+Игроки на сервере: {self.online}
+Список забаненых: {players_data["banlist"]}
+Список операторов сервера: {players_data["oplist"]}
+usercache.json: {players_data["usercache"]}
+CPU: {system["cpu_percent"]} | ядра: {system["cpu_cores"]}
+RAM: {system["ram_used"]} / {system["ram_total"]} | {system["ram_percent"]}
+disk: {system["disk_used"]} / {system["disk_total"]} | {system["disk_percent"]}
+"""     
+        print(system_info)
+        messages = [
+            {
+                "role": "system", 
+                "content": system_info
+            },
+            {
+                "role": "user", 
+                "content": messages
+            }
+        ]
+        if model is None:
+            model = "local-model"
+        stream = self.lient.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=0.7,
+            stream=True
+        )
+        full_response = ""
+        print("Ответ AI: ", end="", flush=True)
+        for chunk in stream:
+            if chunk.choices[0].delta.content:
+                # Печатаем ответ по кусочкам
+                piece = chunk.choices[0].delta.content
+                print(piece, end="", flush=True)
+                full_response += piece
+        print("\n")
+        return full_response
 
 # Инициализация сервера
 server = server_manager()
 # Важны момент!
+print(server.send_to_ai("расскажи влю информацию о сервере"))
 
 @socketio.on('connect', namespace='/server')
 def handle_connect():

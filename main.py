@@ -30,7 +30,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             if ".jar" in i:
                 self.core = i
         self.online = []
-        self.client = OpenAI(base_url="http://127.0.0.1:1234/v1", api_key="lm-studio")
+        self.client = OpenAI(base_url="http://127.0.0.1:1234/v1", api_key="qwen.qwen3-8b")
         
     def start_server(self):
         self.proccess = subprocess.Popen(

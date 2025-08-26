@@ -30,7 +30,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             if ".jar" in i:
                 self.core = i
         self.online = []
-        client = OpenAI(base_url="http://127.0.0.1:1234/v1", api_key="lm-studio")
+        self.client = OpenAI(base_url="http://127.0.0.1:1234/v1", api_key="lm-studio")
         
     def start_server(self):
         self.proccess = subprocess.Popen(
@@ -247,22 +247,18 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def send_to_ai(self, messages, model=None):
         system = self.system_monitoring()
         players_data = self.update_players_data()
-        system_info = f"""Ты - искуственный интелект, который помогает пользователю управлять сервером.
-Ты не можешь выполнять каких либо действий на сервере, ты только отвечаешь на вопросы пользователя
-Информация о сервере:
+        system_info = f"""Информация о сервере:
 Состояние сервера: {self.is_server_running()}
 Ядро сервера: {self.core}
-настройки сервера: {stmc.get_pro}
+настройки сервера: {self.get_properties_data()}
 Онлайн: {len(self.online)} / {self.get_properties_value("max-players")}
 Игроки на сервере: {self.online}
 Список забаненых: {players_data["banlist"]}
 Список операторов сервера: {players_data["oplist"]}
-usercache.json: {players_data["usercache"]}
 CPU: {system["cpu_percent"]} | ядра: {system["cpu_cores"]}
 RAM: {system["ram_used"]} / {system["ram_total"]} | {system["ram_percent"]}
 disk: {system["disk_used"]} / {system["disk_total"]} | {system["disk_percent"]}
 """     
-        print(system_info)
         messages = [
             {
                 "role": "system", 
@@ -275,7 +271,7 @@ disk: {system["disk_used"]} / {system["disk_total"]} | {system["disk_percent"]}
         ]
         if model is None:
             model = "local-model"
-        stream = self.lient.chat.completions.create(
+        stream = self.client.chat.completions.create(
             model=model,
             messages=messages,
             temperature=0.7,

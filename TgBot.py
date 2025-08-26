@@ -36,7 +36,7 @@ def send_welcome(message):
 def send_online(message):
     if (message.chat.id, ) in stmc.get_tg_users():
         if server.is_server_running():
-            online = stmc.get_online()
+            online = server.online
             for i in range(len(online)):
                 online[i] = online + "\n"
             bot.reply_to(message, f"""Игроки {len(stmc.get_online())}/{server.get_properties_data("max-players")}:

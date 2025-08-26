@@ -117,7 +117,8 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             for i in self.get_json("usercache.json"):
                 if i["name"] in line:
                     if "join" in line:
-                        self.online.append(i["name"])
+                        if i["name"] not in self.online:
+                            self.online.append(i["name"])
                     if "left" in line:
                         self.online.remove(i["name"])
             

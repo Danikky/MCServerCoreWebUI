@@ -271,30 +271,30 @@ disk: {system["disk_used"]} / {system["disk_total"]} | {system["disk_percent"]}
         ]
         if model is None:
             model = "local-model"
-        stream = self.client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=0.7,
-            stream=True
-        )
-        full_response = ""
-        print("Ответ AI: ", end="", flush=True)
-        for chunk in stream:
-            if chunk.choices[0].delta.content:
-                # Печатаем ответ по кусочкам
-                piece = chunk.choices[0].delta.content
-                print(piece, end="", flush=True)
-                full_response += piece
-        print("\n")
-        return full_response
+        try:
+            stream = self.client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=0.7,
+                stream=True
+            )
+            full_response = ""
+            print("Ответ AI: ", end="", flush=True)
+            for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    piece = chunk.choices[0].delta.content
+                    print(piece, end="", flush=True)
+                    full_response += piece
+            print("\n")
+        except Exception as e:
+            stmc.add_line(f"Ошибка AI: {e}")
+            print(f"Ошибка AI: {e}")
+        finally:
+            return full_response
 
 # Инициализация сервера
 server = server_manager()
 # Важны момент!
-try:
-    print(server.send_to_ai("расскажи влю информацию о сервере"))
-except Exception as e:
-    print(f"Ошибка: {e}")
 
 @socketio.on('connect', namespace='/server')
 def handle_connect():

@@ -291,7 +291,10 @@ disk: {system["disk_used"]} / {system["disk_total"]} | {system["disk_percent"]}
 # Инициализация сервера
 server = server_manager()
 # Важны момент!
-print(server.send_to_ai("расскажи влю информацию о сервере"))
+try:
+    print(server.send_to_ai("расскажи влю информацию о сервере"))
+except Exception as e:
+    print(f"Ошибка: {e}")
 
 @socketio.on('connect', namespace='/server')
 def handle_connect():

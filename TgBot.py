@@ -15,7 +15,7 @@ def send_to_ai(message):
     print(msg)
     system = server.system_monitoring()
     players_data = server.update_players_data()
-    system_info = f"""Информация о сервере:
+    server_info = f"""Информация о сервере:
 Состояние сервера: {server.is_server_running()}
 Ядро сервера: {server.core}
 настройки сервера: {server.get_properties_data()}
@@ -30,7 +30,7 @@ disk: {system["disk_used"]} / {system["disk_total"]} | {system["disk_percent"]}
     msg = [
         {
             "role": "system", 
-            "content": system_info
+            "content": server_info
         },
         {
             "role": "user", 

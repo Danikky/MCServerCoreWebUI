@@ -7,6 +7,7 @@ BOT_TOKEN = "7911812987:AAHpm_K4N2DKRBKkDaNOCMkXCcY1MIINwgc"
 client = OpenAI(base_url="http://127.0.0.1:1234/v1", api_key="google/gemma-3-27b")
 
 bot = telebot.TeleBot(BOT_TOKEN)
+print("Всё запущено и работает!")
 
 @bot.message_handler(content_types=["text"]) 
 def send_to_ai(message):
@@ -25,7 +26,7 @@ def send_to_ai(message):
 CPU: {system["cpu_percent"]} | ядра: {system["cpu_cores"]}
 RAM: {system["ram_used"]} / {system["ram_total"]} | {system["ram_percent"]}
 disk: {system["disk_used"]} / {system["disk_total"]} | {system["disk_percent"]}
-"""     
+"""
     msg = [
         {
             "role": "system", 
@@ -57,7 +58,6 @@ disk: {system["disk_used"]} / {system["disk_total"]} | {system["disk_percent"]}
         print(f"Ошибка AI: {e}")
     finally:
         bot.reply_to(message, full_response)
-
 
 # работа бота
 if __name__ == "__main__":

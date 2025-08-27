@@ -23,8 +23,8 @@ def send_to_ai(message):
 Информация о сервере:
 - Состояние сервера: {server.is_server_running()}
 - Ядро сервера: {server.core}
-- Онлайн: {len(server.online)} / {server.get_properties_value("max-players")}
-- Игроки на сервере: {server.online}
+- Онлайн: {len(server.get_online())} / {server.get_properties_value("max-players")}
+- Игроки на сервере: {server.get_online()}
 - Список забаненых: {players_data["banlist"]}
 - Список операторов сервера: {players_data["oplist"]}
 - CPU: {system["cpu_percent"]} | ядра: {system["cpu_cores"]}

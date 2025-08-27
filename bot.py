@@ -19,7 +19,6 @@ def send_to_ai(message):
     server_info = f"""Информация о сервере:
 Состояние сервера: {server.is_server_running()}
 Ядро сервера: {server.core}
-настройки сервера: {server.get_properties_data()}
 Онлайн: {len(server.online)} / {server.get_properties_value("max-players")}
 Игроки на сервере: {server.online}
 Список забаненых: {players_data["banlist"]}

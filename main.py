@@ -25,13 +25,14 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def __init__(self):
+        if not self.is_server_running():
+            self.online = []
         self.path = os.path.join(stmc.return_main_dir(), "server") # путь к папке сервера
         for i in os.listdir(self.path):
             if ".jar" in i:
                 self.core = i
         
     def start_server(self):
-        self.online = []
         self.proccess = subprocess.Popen(
             # Xmx - максиммальный, Xms - стартовый
             ["java", "-Xmx16256M", "-Xms8256M", "-jar", self.core, "nogui"], # аргументы запуска сервера

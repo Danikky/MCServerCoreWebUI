@@ -14,13 +14,14 @@ def send_to_ai(message):
     bot.send_chat_action(message.chat.id, "typing")
     msg = message.text
     print("User: ", msg)
+    online = server.online
     system = server.system_monitoring()
     players_data = server.update_players_data()
     server_info = f"""Информация о сервере:
 Состояние сервера: {server.is_server_running()}
 Ядро сервера: {server.core}
-Онлайн: {len(server.online)} / {server.get_properties_value("max-players")}
-Игроки на сервере: {server.online}
+Онлайн: {len(online)} / {server.get_properties_value("max-players")}
+Игроки на сервере: {online}
 Список забаненых: {players_data["banlist"]}
 Список операторов сервера: {players_data["oplist"]}
 CPU: {system["cpu_percent"]} | ядра: {system["cpu_cores"]}

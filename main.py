@@ -58,19 +58,14 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                 break
             if line:
                 stmc.add_line(line)
-                try:
-                    self.console_event_check(line)
-                except Exception as e:
-                    print("Ошибка при чтении вывода консоли: ", e)
-                finally:
-                    socketio.start_background_task(
-                        socketio.emit,
-                        'console_update',
-                        {'line': line.strip()},
-                        namespace='/server'
-                    )
-                    print(line)
-                    return True
+                self.console_event_check(line)
+                socketio.start_background_task(
+                    socketio.emit,
+                    'console_update',
+                    {'line': line.strip()},
+                    namespace='/server'
+                )
+                print(line)
     
     def send_command_direct(self, command: str) -> str: # Отправка команды напрямую через stdin
         if not self.proccess or self.proccess.poll() is not None:

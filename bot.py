@@ -47,7 +47,7 @@ disk: {system["disk_used"]} / {system["disk_total"]} | {system["disk_percent"]}
             stream=True
         )
         full_response = ""
-        print("", end="", flush=True)
+        print("Ответ AI: ", end="", flush=True)
         for chunk in stream:
             if chunk.choices[0].delta.content:
                 piece = chunk.choices[0].delta.content
@@ -55,7 +55,6 @@ disk: {system["disk_used"]} / {system["disk_total"]} | {system["disk_percent"]}
                 full_response += piece
         print("\n")
     except Exception as e:
-        stmc.add_line(f"Ошибка AI: {e}")
         print(f"Ошибка AI: {e}")
     finally:
         bot.reply_to(message, full_response)

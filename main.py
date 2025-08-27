@@ -30,7 +30,6 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             if ".jar" in i:
                 self.core = i
         self.online = []
-        self.client = OpenAI(base_url="http://127.0.0.1:1234/v1", api_key="qwen.qwen3-8b")
         
     def start_server(self):
         self.proccess = subprocess.Popen(
@@ -244,54 +243,6 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                     current_key = current_key.strip()
                     if current_key == key:
                         return value
-    
-    def send_to_ai(self, messages, model=None):
-        system = self.system_monitoring()
-        players_data = self.update_players_data()
-        system_info = f"""Информация о сервере:
-Состояние сервера: {self.is_server_running()}
-Ядро сервера: {self.core}
-настройки сервера: {self.get_properties_data()}
-Онлайн: {len(self.online)} / {self.get_properties_value("max-players")}
-Игроки на сервере: {self.online}
-Список забаненых: {players_data["banlist"]}
-Список операторов сервера: {players_data["oplist"]}
-CPU: {system["cpu_percent"]} | ядра: {system["cpu_cores"]}
-RAM: {system["ram_used"]} / {system["ram_total"]} | {system["ram_percent"]}
-disk: {system["disk_used"]} / {system["disk_total"]} | {system["disk_percent"]}
-"""     
-        messages = [
-            {
-                "role": "system", 
-                "content": system_info
-            },
-            {
-                "role": "user", 
-                "content": messages
-            }
-        ]
-        if model is None:
-            model = "local-model"
-        try:
-            stream = self.client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=0.7,
-                stream=True
-            )
-            full_response = ""
-            print("Ответ AI: ", end="", flush=True)
-            for chunk in stream:
-                if chunk.choices[0].delta.content:
-                    piece = chunk.choices[0].delta.content
-                    print(piece, end="", flush=True)
-                    full_response += piece
-            print("\n")
-        except Exception as e:
-            stmc.add_line(f"Ошибка AI: {e}")
-            print(f"Ошибка AI: {e}")
-        finally:
-            return full_response
 
 # Инициализация сервера
 server = server_manager()

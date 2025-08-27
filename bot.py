@@ -4,7 +4,6 @@ from main import server
 from openai import OpenAI
 
 BOT_TOKEN = "7911812987:AAHpm_K4N2DKRBKkDaNOCMkXCcY1MIINwgc"
-CHAT_ID = "855423845"  # Мой ID в Telegram
 client = OpenAI(base_url="http://127.0.0.1:1234/v1", api_key="google/gemma-3-27b")
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -12,7 +11,7 @@ bot = telebot.TeleBot(BOT_TOKEN)
 @bot.message_handler(content_types=["text"]) 
 def send_to_ai(message):
     msg = message.text
-    print(msg)
+    print("User: ", msg)
     system = server.system_monitoring()
     players_data = server.update_players_data()
     server_info = f"""Информация о сервере:

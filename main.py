@@ -29,9 +29,9 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         for i in os.listdir(self.path):
             if ".jar" in i:
                 self.core = i
-        self.online = []
         
     def start_server(self):
+        self.online = []
         self.proccess = subprocess.Popen(
             # Xmx - максиммальный, Xms - стартовый
             ["java", "-Xmx16256M", "-Xms8256M", "-jar", self.core, "nogui"], # аргументы запуска сервера

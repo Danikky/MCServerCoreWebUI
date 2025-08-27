@@ -1,7 +1,6 @@
 import telebot
 import stmc
 from openai import OpenAI
-from main import server
 
 BOT_TOKEN = "7911812987:AAHpm_K4N2DKRBKkDaNOCMkXCcY1MIINwgc"
 client = OpenAI(base_url="http://127.0.0.1:1234/v1", api_key="local-model")

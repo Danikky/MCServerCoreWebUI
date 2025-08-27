@@ -1,6 +1,5 @@
 import telebot
 import stmc
-import sqlite3
 from main import server
 from openai import OpenAI
 
@@ -10,9 +9,10 @@ client = OpenAI(base_url="http://127.0.0.1:1234/v1", api_key="google/gemma-3-27b
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-@bot.message_handler(type="text") 
+@bot.message_handler(content_types=["text"]) 
 def send_to_ai(message):
     msg = message.text
+    print(msg)
     system = server.system_monitoring()
     players_data = server.update_players_data()
     system_info = f"""Информация о сервере:
@@ -57,7 +57,8 @@ disk: {system["disk_used"]} / {system["disk_total"]} | {system["disk_percent"]}
         stmc.add_line(f"Ошибка AI: {e}")
         print(f"Ошибка AI: {e}")
     finally:
-        bot.reply_to(full_response, "")
+        bot.reply_to(message, full_response)
+
 
 # работа бота
 if __name__ == "__main__":

@@ -236,6 +236,8 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                     current_key = current_key.strip()
                     if current_key == key:
                         return value
+    def get_online(self):
+        return self.online
 
 # Инициализация сервера
 server = server_manager()

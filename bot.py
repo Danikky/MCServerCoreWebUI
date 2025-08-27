@@ -11,6 +11,7 @@ print("Всё запущено и работает!")
 
 @bot.message_handler(content_types=["text"]) 
 def send_to_ai(message):
+    from main import server
     bot.send_chat_action(message.chat.id, "typing")
     msg = message.text
     print("User: ", msg)

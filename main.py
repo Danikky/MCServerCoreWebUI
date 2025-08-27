@@ -70,6 +70,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                         namespace='/server'
                     )
                     print(line)
+                    return True
     
     def send_command_direct(self, command: str) -> str: # Отправка команды напрямую через stdin
         if not self.proccess or self.proccess.poll() is not None:

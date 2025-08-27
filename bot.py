@@ -1,16 +1,16 @@
 import telebot
 import stmc
 from openai import OpenAI
+from main import server
 
 BOT_TOKEN = "7911812987:AAHpm_K4N2DKRBKkDaNOCMkXCcY1MIINwgc"
-client = OpenAI(base_url="http://127.0.0.1:1234/v1", api_key="google/gemma-3-27b")
+client = OpenAI(base_url="http://127.0.0.1:1234/v1", api_key="local-model")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 print("Всё запущено и работает!")
 
 @bot.message_handler(content_types=["text"]) 
 def send_to_ai(message):
-    from main import server
     bot.send_chat_action(message.chat.id, "typing")
     msg = message.text
     print("User: ", msg)

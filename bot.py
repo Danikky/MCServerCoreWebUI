@@ -1,6 +1,5 @@
 import telebot
 import stmc
-from main import server
 from openai import OpenAI
 
 BOT_TOKEN = "7911812987:AAHpm_K4N2DKRBKkDaNOCMkXCcY1MIINwgc"
@@ -11,10 +10,10 @@ print("Всё запущено и работает!")
 
 @bot.message_handler(content_types=["text"]) 
 def send_to_ai(message):
+    from main import server
     bot.send_chat_action(message.chat.id, "typing")
     msg = message.text
     print("User: ", msg)
-    online = server.online
     system = server.system_monitoring()
     players_data = server.update_players_data()
     server_info = f"""Ты - ИИ, который должен помогать пользователю управлять minecraft сервером.
@@ -24,8 +23,8 @@ def send_to_ai(message):
 Информация о сервере:
 - Состояние сервера: {server.is_server_running()}
 - Ядро сервера: {server.core}
-- Онлайн: {len(online)} / {server.get_properties_value("max-players")}
-- Игроки на сервере: {online}
+- Онлайн: {len(server.online)} / {server.get_properties_value("max-players")}
+- Игроки на сервере: {server.online}
 - Список забаненых: {players_data["banlist"]}
 - Список операторов сервера: {players_data["oplist"]}
 - CPU: {system["cpu_percent"]} | ядра: {system["cpu_cores"]}

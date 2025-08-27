@@ -119,7 +119,8 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                         if i["name"] not in self.online:
                             self.online.append(i["name"])
                     if "left" in line:
-                        self.online.remove(i["name"])
+                        if i["name"] in self.online:
+                            self.online.remove(i["name"])
             
     def is_server_running(self):
         for proc in psutil.process_iter():

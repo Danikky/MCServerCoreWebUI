@@ -39,6 +39,7 @@ disk: {system["disk_used"]} / {system["disk_total"]} | {system["disk_percent"]}
     ]
     model = "local-model"
     try:
+        bot.send_chat_action(message.chat.id, "typing")
         stream = client.chat.completions.create(
             model=model,
             messages=msg,

@@ -25,14 +25,13 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def __init__(self):
-        if not self.is_server_running():
-            self.online = []
         self.path = os.path.join(stmc.return_main_dir(), "server") # путь к папке сервера
         for i in os.listdir(self.path):
             if ".jar" in i:
                 self.core = i
         
     def start_server(self):
+        self.online = []
         self.proccess = subprocess.Popen(
             # Xmx - максиммальный, Xms - стартовый
             ["java", "-Xmx16256M", "-Xms8256M", "-jar", self.core, "nogui"], # аргументы запуска сервера
@@ -317,7 +316,10 @@ def about():
 @login_required
 def server_console():
     system_data = None # server.system_monitoring() #
-    online_players = server.online
+    if server.is_server_running():
+        online_players = server.online
+    else:
+        online_players = []
     if request.method == "POST":
         console_input = request.form.get("console_input")
         command = request.form.get("command")
@@ -403,11 +405,17 @@ def server_files_to(path):
 @login_required
 def server_players():
     if request.method == "POST":
-        online = [len(server.online), server.get_properties_value("max-players")]
+        if server.is_server_running():
+            online = [len(server.online), server.get_properties_value("max-players")]
+        else:
+            online = [0, server.get_properties_value("max-players")]
         players_data = server.update_players_data()
         return render_template("server_players.html", players_data=players_data, online=online)
     else:
-        online = [len(server.online), server.get_properties_value("max-players")]
+        if server.is_server_running():
+            online = [len(server.online), server.get_properties_value("max-players")]
+        else:
+            online = [0, server.get_properties_value("max-players")]
         players_data = server.update_players_data()
         return render_template("server_players.html", players_data=players_data, online=online)
 

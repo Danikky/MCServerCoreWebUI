@@ -58,14 +58,18 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                 break
             if line:
                 stmc.add_line(line)
-                self.console_event_check(line)
-                socketio.start_background_task(
-                    socketio.emit,
-                    'console_update',
-                    {'line': line.strip()},
-                    namespace='/server'
-                )
-                print(line)
+                try:
+                    self.console_event_check(line)
+                except Exception as e:
+                    print("Ошибка при чтении вывода консоли: ", e)
+                finally:
+                    socketio.start_background_task(
+                        socketio.emit,
+                        'console_update',
+                        {'line': line.strip()},
+                        namespace='/server'
+                    )
+                    print(line)
     
     def send_command_direct(self, command: str) -> str: # Отправка команды напрямую через stdin
         if not self.proccess or self.proccess.poll() is not None:
@@ -74,15 +78,6 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             self.proccess.stdin.write(command + '\n')
             self.proccess.stdin.flush()
             time.sleep(0.1)
-            output_lines = []
-            while True:
-                line = self.proccess.stdout.readline()
-                if not line:
-                    break
-                output_lines.append(line)
-                if len(output_lines) > 20:
-                    output_lines.pop(0)
-            return ''.join(output_lines[-5:]) # Возвращается последние 5 строк!!!
         except Exception as e:
             stmc.add_line(f"Ошибка отправки команды: {str(e)}")
             print(f"[DEBUG: <time>] - {e}")
@@ -118,7 +113,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                     if "join" in line:
                         if i["name"] not in self.online:
                             self.online.append(i["name"])
-                    if "left" in line:
+                    elif "left" in line:
                         if i["name"] in self.online:
                             self.online.remove(i["name"])
             

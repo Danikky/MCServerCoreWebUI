@@ -16,7 +16,6 @@ import datetime as dt
 import json
 import telebot
 import requests
-from openai import OpenAI
 
 stmc.init_db()
 app = Flask(__name__)
@@ -182,18 +181,10 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             print(f"ошибка при извлечении словаря из {json_file}")
 
     def update_players_data(self):
-        usercaсhe = []
-        for i in self.get_json("usercache.json"):
-            usercaсhe.append(i)
-        whitelist = []
-        for i in self.get_json("whitelist.json"):
-            whitelist.append(i["name"])
-        oplist = []
-        for i in self.get_json("ops.json"):
-            oplist.append(i["name"])
-        banlist = []
-        for i in self.get_json("banned-players.json"):
-            banlist.append(i["name"])
+        usercaсhe = [x for x in self.get_json("usercache.json")]
+        whitelist = [x["name"] for x in self.get_json("whitelist.json")]
+        oplist = [x["name"] for x in self.get_json("ops.json")]
+        banlist = [x["name"] for x in self.get_json("banned-players.json")]
         return { # ЭТО СПИСКИ С ИМЕНАМИ!!!!!! ЧИТАЙ ФРОНТЕНДЕР!!!
             "usercaсhe": usercaсhe, # usercahe[i]["name"] = <имя типа> , usercahe[i]["uuid"] = <uuid>
             "whitelist": whitelist, # whitelist[i] = <имя типа>

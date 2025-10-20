@@ -24,11 +24,6 @@ def init_db():
     )
     """)
     
-    c.execute(""" CREATE TABLE IF NOT EXISTS tg (
-    id INTEGER PRIMARY KEY
-    )
-    """)
-    
     conn.commit()
     c.close()
     conn.close()
@@ -184,29 +179,3 @@ def agree_eula():
                 new_lines.append(line)
     with open(return_main_dir()+"\server\eula.txt", 'w', encoding='utf-8') as f:
         f.writelines(new_lines)
-
-def tg_auth(id):
-    try:
-        conn = sqlite3.connect(f"{db_name}")
-        c = conn.cursor()
-        c.execute("INSERT INTO tg (id) VALUES (?)", (id,))
-    except:
-        print("ошибка при авторизации в боте")
-    finally:
-        conn.commit()
-        c.close()
-        conn.close()
-
-def get_tg_users():
-    try:
-        conn = sqlite3.connect(f"{db_name}")
-        c = conn.cursor()
-        c.execute("SELECT id FROM tg")
-        users = c.fetchall()
-        return users
-    except:
-        print("ошибка при получении пользователей бота")
-    finally:
-        conn.commit()
-        c.close()
-        conn.close()

@@ -18,28 +18,28 @@ Control panel
         max-height: 60vh; /* Максимальная высота 60% от высоты экрана */
         height: 900px; /* Фиксированная высота по умолчанию */
         overflow-y: auto; /* Вертикальный скролл */
-        background-color: #1f1f1f;
+        background-color: rgba(0, 0, 0, 0.3);
         padding: 15px;
-        border: 2px solid #333;
+        border: 0px;
         margin-bottom: 20px;
     }
 
     .scroll-container::-webkit-scrollbar {
         width: 8px;
-        background-color: #1a1a1a;
+        background-color: rgba(0, 0, 0, 0.3);
     }
 
     .scroll-container::-webkit-scrollbar-thumb {
-        background-color: #404040;
+        background-color: rgba(255, 255, 255, 0.3);
         border-radius: 4px;
     }
 </style>
 <div class="container-fluid vh-100 m-0" style="padding-left: 5%; padding-right: 5%;">
-    <div class="alert alert-info">
+    <div class="card card-body">
         {% if is_server_run %}
-            <h1 class="text-center">Console</h1>
+            <h1 class="text-center text-white">Console</h1>
         {% else %}
-            <h1 class="text-center">Console (Сервер выключен)</h1>
+            <h1 class="text-center text-white">Console (Сервер выключен)</h1>
         {% endif %}
         <form method="post">
             <div id="console-output" class="console-container scroll-container">

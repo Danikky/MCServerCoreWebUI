@@ -7,41 +7,45 @@ Players
 
 {% block body %}
 
-<div class="alert alert-info">
-    <h1>Онлайн: {{online[0]}} / {{online[1]}}</h1>
+<div class="card card-body">
+    <h1 class="text">Онлайн: {{online[0]}} / {{online[1]}}</h1>
     <form method="post">
-        <div class="alert alert-dark">
-            <h1>Список игроков:</h1>
+        <div class="card card-body" style="padding: 1%;">
+            <h1 class="text">Список игроков:</h1>
             {% for el in players_data["online"] %}
-                <div class="alert alert-info">
-                    <h3>{{el}}</h3>
-                    <h4>{{players_data["usercache"]}}
+                <div class="card">
+                    <h3 class="text">{{el}}</h3>
+                    <h4 class="text">{{players_data["usercache"]}}
                         <button class="btn btn-success" name="command" value="op">op</button>
                         <button class="btn btn-danger" name="command" value="kick">kick</button>
                         <button class="btn btn-danger" name="command" value="ban">ban</button>
                     </h4>
                 </div>
             {% endfor %}
-        </div>
-        <div class="alert alert-success">
-            <h1>Op-list:</h1>
-            {% for el in players_data["oplist"] %}
-                <div class="alert alert-primary">
-                    <h3>{{el}}<button class="btn btn-danger" name="command" value="deop">deop</button></h3>
-                </div>
-            {% endfor %}
-        </div>
-        <div class="alert alert-danger">
-            <h1>Ban-list:</h1>
-            {% for el in players_data["banlist"] %}
-                <h3>{{el}}<button class="btn btn-danger" name="command" value="unban">remove</button></h3>
-            {% endfor %}
-        </div>
-        <div>
-            <h1>Whitelist:</h1>
-            {% for el in players_data["whitelist"] %}
-                <h3>{{el}}<button class="btn btn-danger" name="command" value="remove_from_whitelist">remove</button></h3>
-            {% endfor %}
+            <div class="card">
+                <h1 class="text" >Op-list:</h1>
+                {% for el in players_data["oplist"] %}
+                    <div class="card">
+                        <h3 class="text">{{el}}<button class="btn btn-danger" name="command" value="deop">deop</button></h3>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="card">
+                <h1 class="text">Ban-list:</h1>
+                {% for el in players_data["banlist"] %}
+                    <div class="card">
+                        <h3 class="text">{{el}}<button class="btn btn-danger" name="command" value="unban">remove</button></h3>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="card">
+                <h1 class="text">Whitelist:</h1>
+                {% for el in players_data["whitelist"] %}
+                    <div class="card">
+                        <h3 class="text">{{el}}<button class="btn btn-danger" name="command" value="remove_from_whitelist">remove</button></h3>
+                    </div>
+                {% endfor %}
+            </div>
         </div>
     </form>
 </div>

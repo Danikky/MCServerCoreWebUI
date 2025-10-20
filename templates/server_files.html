@@ -5,9 +5,9 @@ File manager
 {% endblock %}
 
 {% block body %}
-<div class="alert alert-info">
+<div class="card card-body">
     <div class="table">
-        <h1>Файлы:</h1>
+        <h1 class="text">Файлы:</h1>
         <form method="post">
             <div class="tablet">
                 <input type="text" name="item" id="item" class="form-control", placeholder="Enter new file/dir name">
@@ -18,12 +18,12 @@ File manager
         </form>
     </div>
     {% for el in dir_list %}
-        <div class="alert alert-primary">
+        <div class="card card-body">
             <form method="post">
                 <div>
                     <input type="hidden" name="item" value="{{el}}">
                     {% if "." in el%}
-                        <button class="btn btn-succes" name="command" value="open">{{el}}</button>
+                        <button class="btn btn-succes text" name="command" value="open">{{el}}</button>
                     {% else %}
                         <a href="/server/files/{{path}}-{{el}}" class="btn btn-primary">
                             {{el}}

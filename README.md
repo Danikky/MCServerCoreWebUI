@@ -117,3 +117,5 @@ This is a modern web interface for easy management of a Minecraft server running
 
 *   Основано на проекте [MCServerCore](https://github.com/Danikky/MCServerCore).
 *   Построено с использованием [Flask](https://flask.palletsprojects.com/), микрофреймворка для Python.
+
+README.md СГЕНЕРИРОВАНО ИИ И СОДЕРЖИТ ОШИБКИ.

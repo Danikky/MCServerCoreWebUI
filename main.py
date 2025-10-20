@@ -14,7 +14,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import stmc
 import datetime as dt
 import json
-import telebot
 import requests
 
 stmc.init_db()
@@ -24,11 +23,13 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def __init__(self):
+        self.core = None
         self.online = []
         self.path = os.path.join(stmc.return_main_dir(), "server") # путь к папке сервера
         for i in os.listdir(self.path):
             if ".jar" in i:
                 self.core = i
+                break
         
     def start_server(self):
         self.online = []
@@ -233,6 +234,11 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
 # Инициализация сервера
 server = server_manager()
 # Важны момент!
+
+if server.core == None:
+    err = "Ошибка инициализации сервера: не найден файл сервера (.jar)"
+    stmc.add_line(err)
+    print(err)
 
 @socketio.on('connect', namespace='/server')
 def handle_connect():

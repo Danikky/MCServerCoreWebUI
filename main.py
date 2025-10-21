@@ -405,6 +405,10 @@ def server_files_to(path):
 @login_required
 def server_players():
     if request.method == "POST":
+        username = request.form.get("username")
+        command = request.form.get("command")
+        if username and command:
+            server.send_command_direct(f"{command} {username}")
         if server.is_server_running():
             online = [len(server.online), server.get_properties_value("max-players")]
         else:

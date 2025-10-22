@@ -8,6 +8,17 @@ About
 <!-- <h2 class="text">Minecraft Server CodeCrazeUniverse<sup>inc.</sup></h2> -->
 {% if current_user.is_authenticated %}
 {% else %}
+    <div class="card card-body">
+        <div class="card">
+            <h1 class="text">Кроме Дани никто не работает</h1>
+        </div>
+        <div class="card">
+            <h1 class="text">Я устал работать один</h1>
+        </div>
+        <div class="card">
+            <h1 class="text">Артем уволен</h1>
+        </div>
+    </div>
     <img class="background" src="{{ url_for('static', filename='/res/img1.png') }}" alt="minecraft(main-link)">
 {% endif %}
 

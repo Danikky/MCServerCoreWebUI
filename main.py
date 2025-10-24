@@ -35,7 +35,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         self.online = []
         self.proccess = subprocess.Popen(
             # Xmx - максиммальный, Xms - стартовый
-            ["java", "-Xmx16256M", "-Xms8256M", "-jar", self.core, "nogui"], # аргументы запуска сервера
+            ["java", "-Xmx16000M", "-Xms8000M", "-jar", self.core, "nogui"], # аргументы запуска сервера
             cwd=self.path,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,

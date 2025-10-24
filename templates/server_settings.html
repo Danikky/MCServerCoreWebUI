@@ -5,32 +5,29 @@
 {% block body %}
 <div class="container-fluid px-0">
     <div class="card card-body bg-transparent">
-        <h1 class="mb-4 text">
+        <h1 class="card card-group mb-4 text">
             Настройки сервера 
-            <button type="submit" class="btn btn-success btn-lg">
-                Сохранить изменения
-            </button></h1>
+            <button type="submit" class="btn btn-success">
+                <h3 class="text">Сохранить изменения</h3>
+            </button>
+        </h1>
         <form method="post">
             {# Группируем элементы по 3 в ряду #}
             <div class="row">
                 {% for el in properties_data %}
-                    <div class="col-md-2 mb-3">
+                    <div class="col-3 mb-2">
                         <div class="card">
-                            <h5 class="text">{{ el[0] }}</h5>
+                            <h5 class="card text">{{ el[0] }}</h5>
                             <input type="text" 
                                    name="{{ el[0] }}" 
                                    class="form-control" 
                                    placeholder="{{ el[1] }}">
                         </div>
                     </div>
-                    {# Переносим на новую строку каждые 3 элемента #}
-                    {% if loop.index % 6 == 0 and not loop.last %}
-                        </div><div class="row">
-                    {% endif %}
                 {% endfor %}
             </div>
             <div class="text-center mt-4">
-                <button type="submit" class="btn btn-success btn-lg">
+                <button type="submit" class="btn btn-success col-lg-12">
                     Сохранить изменения
                 </button>
             </div>

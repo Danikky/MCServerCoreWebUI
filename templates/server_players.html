@@ -4,11 +4,16 @@
 Players
 {% endblock %}
 
-
 {% block body %}
+<style>
+    .card {
+        background-color: rgba(0, 0, 0, 0.2);
+    }
+</style>
+
 
 <div class="card card-body">
-    <h1 class="text">Онлайн: {{online[0]}} / {{online[1]}}</h1>
+    <h1 class="card text">Онлайн: {{online[0]}} / {{online[1]}}</h1>
     <div class="card card-body" style="padding: 1%;">
         <h1 class="text">Список игроков:</h1>
         <form method="post">
@@ -25,7 +30,7 @@ Players
         {% endfor %}
         </form>
         <form method="post">
-            <div class="card">
+            <div>
                 <h1 class="text" >Op-list:</h1>
                 {% for el in players_data["oplist"] %}
                     <input type="hidden" name="username" value="{{el}}">
@@ -36,7 +41,7 @@ Players
             </div>
         </form>
         <form method="post">
-            <div class="card">
+            <div>
                 <h1 class="text">Ban-list:</h1>
                 {% for el in players_data["banlist"] %}
                     <input type="hidden" name="username" value="{{el}}">
@@ -47,7 +52,7 @@ Players
             </div>
         </form>
         <form method="post">
-            <div class="card">
+            <div>
                 <h1 class="text">Whitelist:</h1>
                 {% for el in players_data["whitelist"] %}
                     <input type="hidden" name="username" value="{{el}}">

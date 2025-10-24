@@ -25,6 +25,7 @@ header {
 
 .text {
     color: rgba(255, 255, 255, 0.9);
+    font-family: monospace;
 }
 
 .nav-link {
@@ -76,27 +77,14 @@ header {
     font-family: monospace;
     background-color: rgba(0, 0, 0, 0.3);
     border: 0px;
-}
-
-.fonter {
-    font-family: 'Arial';
-}
-
-.scroll-container {
-    overflow: scroll;
-    @supports (scrollbar-gutter: stable) {
-    overflow: auto;    
-    scrollbar-gutter: stable;  
-    }
+    backdrop-filter: blur(10px);
+    -webkit-text-fill-color: rgba(255, 255, 255, 0.3);
 }
     
 .card {
     background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(5px);
     padding: 3%;
-}
-
-.background {
-    filter: blur(2px);
 }
 
 /* Для работы server_settings */

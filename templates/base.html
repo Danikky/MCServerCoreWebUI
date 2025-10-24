@@ -10,9 +10,12 @@
 </head>
 <style>
     ul {list-style-type: none}
+    .card-header-pills {
+        align-items: center;
+    }
 </style>
 <body>
-    <header class="d-flex justify-content-center py-3">
+    <header class="card card-header-pills fixed-top">
         <ul class="nav nav-pills">
             <li class="nav-item">
                 <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}" {% if request.path == '/' %}aria-current="page"{% endif %}>

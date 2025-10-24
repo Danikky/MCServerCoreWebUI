@@ -13,10 +13,16 @@
     .card-header-pills {
         align-items: center;
     }
+    .nav-link {
+        color: white;
+    }
 </style>
 <body>
+    <header class="card">
+        <h3>пасхалко</h3>
+    </header>
     <header class="card card-header-pills fixed-top">
-        <ul class="nav nav-pills">
+        <ul class="nav nav-pills align-items-md-center">
             <li class="nav-item">
                 <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}" {% if request.path == '/' %}aria-current="page"{% endif %}>
                     На главную

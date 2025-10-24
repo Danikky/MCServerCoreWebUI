@@ -22,7 +22,11 @@ Players
             <div class="card">
                 <h3 class="text">{{el}}</h3>
                 <h4 class="text">{{players_data["usercache"]}}
-                    <button class="btn btn-success" name="command" value="op">op</button>
+                    {% if el in players_data["oplist"] %}
+                        <button class="btn btn-danger" name="command" value="deop">deop</button>
+                    {% else %}
+                        <button class="btn btn-success" name="command" value="op">op</button>
+                    {% endif %}
                     <button class="btn btn-danger" name="command" value="kick">kick</button>
                     <button class="btn btn-danger" name="command" value="ban">ban</button>
                 </h4>

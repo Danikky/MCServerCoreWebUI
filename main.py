@@ -23,6 +23,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def __init__(self):
+        self.core = None
         self.online = []
         self.path = os.path.join(stmc.return_main_dir(), "server") # путь к папке сервера
         for i in os.listdir(self.path):
@@ -30,14 +31,11 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                 self.core = i
                 print(f"{self.core} обнаружено")
                 break
-        if not self.core:
-            print("Ядро сервера не найдено")
         
     def start_server(self):
         self.online = []
-        self.proccess = subprocess.Popen(
-            # Xmx - максиммальный, Xms - стартовый
-            ["java", "-Xmx16000M", "-Xms8000M", "-jar", self.core, "nogui"], # аргументы запуска сервера
+        self.proccess = subprocess.Popen( # Xmx - максиммальный, Xms - стартовый
+            args=["java", "-Xmx16256M", "-Xms8256M", "-jar", self.core, "nogui"], # аргументы запуска сервера
             cwd=self.path,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,

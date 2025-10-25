@@ -23,13 +23,15 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def __init__(self):
-        self.core = None
         self.online = []
         self.path = os.path.join(stmc.return_main_dir(), "server") # путь к папке сервера
         for i in os.listdir(self.path):
             if ".jar" in i:
                 self.core = i
+                print(f"{self.core} обнаружено")
                 break
+        if not self.core:
+            print("Ядро сервера не найдено")
         
     def start_server(self):
         self.online = []

@@ -39,25 +39,6 @@ header {
     z-index: -1;
 }
 
-/* Для работы новой шапки */
-.fixed-left {
-    position: fixed;
-    left: 20px;
-    top: 4%;
-    transform: translateY(-50%);
-    z-index: 1000;
-}
-
-.fixed-right {
-    position: fixed;
-    right: 20px;
-    top: 4%;
-    transform: translateY(-50%);
-    z-index: 1000;
-}
-/* Для работы новой шапки */
-
-/* Для работы server_settings */
 .fixed-bottom {
     position: sticky;
     bottom: 0;

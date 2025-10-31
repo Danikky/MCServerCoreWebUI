@@ -6,6 +6,10 @@ Control panel
 
 {% block body %}
 <style>
+    .fonter {
+        font-family: monospace;
+    }
+    
     .console-container {
         background-color: #161515; /* Темный фон контейнера */
         border: 2px solid #404040;
@@ -36,11 +40,17 @@ Control panel
 </style>
 <div class="container-fluid vh-100 m-0" style="padding-left: 5%; padding-right: 5%;">
     <div class="card card-body">
-        {% if is_server_run %}
-            <h1 class="text-center text-white">Console</h1>
-        {% else %}
-            <h1 class="text-center text-white">Console (Сервер выключен)</h1>
-        {% endif %}
+        <div class="">
+            {% if is_server_run %}
+                <h1 class="text text-white">Console
+                    <h1 class="text card">
+                        online: 0 / 20
+                    </h1>
+                </h1>
+            {% else %}
+                <h1 class="text-center text-white">Console (Сервер выключен)</h1>
+            {% endif %}
+        </div>
         <form method="post">
             <div id="console-output" class="console-container scroll-container">
                 <!-- Контент будет обновляться через WebSocket -->

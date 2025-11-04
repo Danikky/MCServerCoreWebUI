@@ -19,7 +19,8 @@ def init_db():
     )
     """)
     
-    c.execute(""" CREATE TABLE IF NOT EXISTS console_output (
+    c.execute("""CREATE TABLE IF NOT EXISTS console_output (
+    id INTEGER PRIMARY KEY,
     line TEXT NOT NULL
     )
     """)
@@ -76,10 +77,11 @@ def get_console_output():
     try:
         conn = sqlite3.connect(f"{db_name}")
         c = conn.cursor()
-        c.execute("SELECT * FROM console_output")
+        c.execute("select line from console_output order by id desc limit 1000;")
         output = c.fetchall()
         return output
     except:
+        add_line("При получении вывода консоли чтото наебнулось")
         print("При получении вывода консоли чтото наебнулось")
     finally:
         conn.commit()

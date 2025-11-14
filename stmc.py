@@ -77,7 +77,7 @@ def get_console_output():
     try:
         conn = sqlite3.connect(f"{db_name}")
         c = conn.cursor()
-        c.execute("select line from console_output order by id desc limit 1000;")
+        c.execute("select line from console_output")
         output = c.fetchall()
         return output
     except:

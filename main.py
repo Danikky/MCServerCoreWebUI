@@ -35,7 +35,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def start_server(self):
         self.online = []
         self.proccess = subprocess.Popen( # Xmx - максиммальный, Xms - стартовый
-            args=["java", "-Dsun.stdout.encoding=UTF-8", "-Dsun.stdin.encoding=UTF-8", "-Xmx16256M", "-Xms8256M", "-jar", self.core, "nogui"], # аргументы запуска сервера
+            args=["java", "-Dsun.stdout.encoding=UTF-8", "-Xmx16256M", "-Xms8256M", "-jar", self.core, "nogui"], # аргументы запуска сервера
             cwd=self.path,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,

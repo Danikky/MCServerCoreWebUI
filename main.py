@@ -4,9 +4,7 @@ import sqlite3
 from flask_socketio import SocketIO, emit
 import asyncio
 import os
-import sys
 import psutil
-from mcrcon import MCRcon
 import subprocess
 import threading
 import time
@@ -14,7 +12,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import stmc
 import datetime as dt
 import json
-import requests
 
 stmc.init_db()
 app = Flask(__name__)
@@ -125,7 +122,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     
     def get_properties_data(self):
         result = []
-        properties_path = self.path + "\server.properties"
+        properties_path = self.path + "/server.properties"
         with open(properties_path, 'r', encoding='utf-8') as f:
             for line in f:
                 stripped = line.strip()
@@ -142,7 +139,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def update_properties(self, key, value):
         updated = False
         new_lines = []
-        properties_path = self.path + "\server.properties"
+        properties_path = self.path + "/server.properties"
         with open(properties_path, 'r', encoding='utf-8') as f:
             for line in f:
                 if line.strip().startswith(('#', '!')) or len(line.strip()) == 0:
@@ -173,7 +170,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         # usercache.json
         # whitelist.json
         # version_history.json
-        path = self.path + "\\" + json_file
+        path = self.path + r"/" + json_file
         try:
             with open(path, 'r', encoding='utf-8') as file:
                 data = json.load(file)
@@ -205,22 +202,22 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
 
     def get_backups_list(self):
         if "backups" not in stmc.get_dir(self.path):
-            stmc.make(self.path + "\\backups", True)
-        return stmc.get_dir(self.path + "\\backups")
+            stmc.make(self.path + r"/backups", True)
+        return stmc.get_dir(self.path + r"/backups")
 
     def create_backup(self, name):
         date = dt.datetime.now()
-        stmc.clone_dir(self.path, self.path + f"\\backups\\{name}-{date}")
-        stmc.delete(self.path + f"\\backups\\{name}-{date}\\backups")
+        stmc.clone_dir(self.path, self.path + f"/backups/{name}-{date}")
+        stmc.delete(self.path + f"/backups/{name}-{date}/backups")
 
     def delete_backup(self, name):
-        stmc.delete(self.path + f"\\backups\\{name}")
+        stmc.delete(self.path + f"/backups/{name}")
 
     def rename_backup(self, name, new_name):
-        stmc.rename(self.path + f"\\backups\\{name}", new_name)
+        stmc.rename(self.path + f"/backups/{name}", new_name)
         
     def get_properties_value(self, key):
-        properties_path = self.path + "\server.properties"
+        properties_path = self.path + "/server.properties"
         with open(properties_path, 'r', encoding='utf-8') as f:
             for line in f:
                 if '=' in line:
@@ -372,7 +369,7 @@ def server_settings():
 @app.route("/server/files/<string:path>", methods=["POST", "GET"])
 @login_required
 def server_files_to(path):
-    dir_list = os.listdir(stmc.return_main_dir() + "\\" + str(path).replace("-", "\\"))
+    dir_list = os.listdir(stmc.return_main_dir() + "/" + str(path).replace("+", "/"))
     dir_list = stmc.sort_dir(dir_list)
     is_renaming = [None, False]
     if request.method == "POST":
@@ -386,15 +383,15 @@ def server_files_to(path):
             if command == "rename":
                 is_renaming = [item, True]
                 if new_name != "":
-                    stmc.rename(str(path.replace("-", "\\"))+"\\"+item, new_name)
+                    stmc.rename(str(path.replace("+", "/"))+"/"+item, new_name)
             if command == "delete":
-                stmc.delete(str(path.replace("-", "\\"))+"\\"+item)
+                stmc.delete(str(path.replace("+", "/"))+"/"+item)
             if command == "make":
                 if "." in item:
-                    stmc.make(str(path.replace("-", "\\"))+"\\"+item, False)
+                    stmc.make(str(path.replace("+", "/"))+"/"+item, False)
                 else:
-                    stmc.make(str(path.replace("-", "\\"))+"\\"+item, True)
-            dir_list = os.listdir(stmc.return_main_dir() + "\\" + str(path).replace("-", "\\"))
+                    stmc.make(str(path.replace("+", "/"))+"/"+item, True)
+            dir_list = os.listdir(stmc.return_main_dir() + "/" + str(path).replace("+", "/"))
             dir_list = stmc.sort_dir(dir_list)
         return render_template("server_files.html", dir_list=dir_list, path=path, is_renaming=is_renaming)
     else:

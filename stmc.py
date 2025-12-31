@@ -5,7 +5,6 @@ import shutil
 import psutil
 from werkzeug.security import generate_password_hash, check_password_hash
 
-server_dir_path = r"C:\Users\riper\ToolsUsefull\MyProgramDev\CoreServer"
 db_name = "DataBase.db"
 
 def init_db():
@@ -171,13 +170,13 @@ def sort_dir(dir_list): # Сортирует директории по типу 
     return new_list
 
 def agree_eula():
-    print(return_main_dir()+"\server\eula.txt")
-    with open(return_main_dir()+"\server\eula.txt", 'r', encoding='utf-8') as f:
+    print(return_main_dir()+"/server/eula.txt")
+    with open(return_main_dir()+r"/server/eula.txt", 'r', encoding='utf-8') as f:
         new_lines = []
         for line in f:
             if "eula=false" in line:
                 new_lines.append("eula=true")
             else:
                 new_lines.append(line)
-    with open(return_main_dir()+"\server\eula.txt", 'w', encoding='utf-8') as f:
+    with open(return_main_dir()+"/server/eula.txt", 'w', encoding='utf-8') as f:
         f.writelines(new_lines)

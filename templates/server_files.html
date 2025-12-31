@@ -25,7 +25,7 @@ File manager
                     {% if "." in el%}
                         <button class="btn btn-succes text" name="command" value="open">{{el}}</button>
                     {% else %}
-                        <a href="/server/files/{{path}}-{{el}}" class="btn btn-primary">
+                        <a href="/server/files/{{path}}+{{el}}" class="btn btn-primary">
                             {{el}}
                         </a>
                     {% endif %}

@@ -5,14 +5,13 @@
 {% block body %}
 <div class="container-fluid px-0">
     <div class="card card-body bg-transparent">
-        <h1 class="card card-group mb-4 text">
-            Настройки сервера 
-            <button type="submit" class="btn btn-success">
-                <h3 class="text">Сохранить изменения</h3>
-            </button>
-        </h1>
         <form method="post">
-            {# Группируем элементы по 3 в ряду #}
+            <h1 class="card card-group mb-4 text">
+                Настройки сервера 
+                <button type="submit" class="btn btn-success">
+                    <h3 class="text">Сохранить изменения</h3>
+                </button>
+            </h1>
             <div class="row">
                 {% for el in properties_data %}
                     <div class="col-3 mb-2">

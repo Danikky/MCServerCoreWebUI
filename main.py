@@ -23,13 +23,19 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         self.core = None
         self.online = []
         self.path = os.path.join(stmc.return_main_dir(), "server") # путь к папке сервера
+        # for i in os.listdir(self.path):
+        #     if ".jar" in i:
+        #         self.core = i
+        #         print(f"{self.core} обнаружено")
+        #         break
+        
+    def start_server(self):
         for i in os.listdir(self.path):
             if ".jar" in i:
                 self.core = i
                 print(f"{self.core} обнаружено")
                 break
-        
-    def start_server(self):
+            
         self.online = []
         self.proccess = subprocess.Popen( # Xmx - максиммальный, Xms - стартовый
             args=["java", "-Dsun.stdout.encoding=UTF-8", "-Xmx16256M", "-Xms8256M", "-jar", self.core, "nogui"], # аргументы запуска сервера
@@ -123,17 +129,20 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def get_properties_data(self):
         result = []
         properties_path = self.path + "/server.properties"
-        with open(properties_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                stripped = line.strip()
-                if not stripped or stripped[0] in ('#', '!'):
-                    continue
-                if '=' in stripped:
-                    key, value = stripped.split('=', 1)
-                    result.append([
-                        key.strip(),
-                        value.strip()
-                    ])
+        try:
+            with open(properties_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    stripped = line.strip()
+                    if not stripped or stripped[0] in ('#', '!'):
+                        continue
+                    if '=' in stripped:
+                        key, value = stripped.split('=', 1)
+                        result.append([
+                            key.strip(),
+                            value.strip()
+                        ])
+        except:
+            result = None
         return result
         
     def update_properties(self, key, value):
@@ -218,13 +227,17 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         
     def get_properties_value(self, key):
         properties_path = self.path + "/server.properties"
-        with open(properties_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                if '=' in line:
-                    current_key, value = line.split('=', 1)
-                    current_key = current_key.strip()
-                    if current_key == key:
-                        return value
+        try:
+            with open(properties_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if '=' in line:
+                        current_key, value = line.split('=', 1)
+                        current_key = current_key.strip()
+                        if current_key == key:
+                            return value
+        except:
+            return None
+        
     def get_online(self):
         return self.online
 
@@ -355,15 +368,20 @@ def get_console_history():
 @login_required
 def server_settings():
     properties_data = server.get_properties_data()
-    if request.method == "POST":
-        for i in range(len(properties_data)):
-            new_value = request.form.get(properties_data[i][0])
-            if new_value not in [None, "null", ""]:
-                server.update_properties(properties_data[i][0], new_value)
-        properties_data = server.get_properties_data()
-        return render_template("server_settings.html", properties_data=properties_data)
+    if properties_data:
+        print(properties_data)
+        if request.method == "POST":
+            for i in range(len(properties_data)):
+                new_value = request.form.get(properties_data[i][0])
+                if new_value not in [None, "null", ""]:
+                    server.update_properties(properties_data[i][0], new_value)
+            properties_data = server.get_properties_data()
+            return render_template("server_settings.html", properties_data=properties_data)
+        else:
+            return render_template("server_settings.html", properties_data=properties_data)
     else:
-        return render_template("server_settings.html", properties_data=properties_data)
+        e = "Файл с настройками сервера не обнаружен"
+        return render_template("error.html", error=e)
 
 # Управление файлами сервера (редактирование/создание/удаление файлов, директорий)
 @app.route("/server/files/<string:path>", methods=["POST", "GET"])
@@ -415,10 +433,16 @@ def server_players():
     else:
         if server.is_server_running():
             online = [len(server.online), server.get_properties_value("max-players")]
+            players_data = server.update_players_data()
+            return render_template("server_players.html", players_data=players_data, online=online)
         else:
             online = [0, server.get_properties_value("max-players")]
-        players_data = server.update_players_data()
-        return render_template("server_players.html", players_data=players_data, online=online)
+            if online[1]:
+                players_data = server.update_players_data()
+                return render_template("server_players.html", players_data=players_data, online=online)
+            else:
+                e = "Ошибка"
+                return render_template("error.html", error=e)
 
 # Страница со списком бекапов и возможностью их создавать
 @app.route("/server/backups")

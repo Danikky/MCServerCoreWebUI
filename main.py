@@ -35,10 +35,24 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                 self.core = i
                 print(f"{self.core} обнаружено")
                 break
-            
+        if self.core == None:
+            for i in os.listdir(self.path):
+                if ".sh" in i or ".bat" in i:
+                    self.start_file = i
+                    print(f"Обнаружен файл запуска: {i}")
+                    stmc.add_line(f"Обнаружен файл запуска: {i}")
+                    break
+        
+        arg = ["java", "-Dsun.stdout.encoding=UTF-8", "-Xmx16G", "-Xms4G", "-jar", self.core, "nogui"]
+        if self.start_file:
+            self.proccess= subprocess.Popen(
+                args=["bash", self.start_file]
+            )
+
         self.online = []
+        
         self.proccess = subprocess.Popen( # Xmx - максиммальный, Xms - стартовый
-            args=["java", "-Dsun.stdout.encoding=UTF-8", "-Xmx16256M", "-Xms8256M", "-jar", self.core, "nogui"], # аргументы запуска сервера
+            args=arg, # аргументы запуска сервера
             cwd=self.path,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,

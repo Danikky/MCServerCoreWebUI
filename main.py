@@ -45,9 +45,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         
         arg = ["java", "-Dsun.stdout.encoding=UTF-8", "-Xmx16G", "-Xms4G", "-jar", self.core, "nogui"]
         if self.start_file:
-            self.proccess= subprocess.Popen(
-                args=["bash", self.start_file]
-            )
+            arg = ["bash", self.start_file]
 
         self.online = []
         

@@ -21,6 +21,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
     def __init__(self):
         self.core = None
+        self.start_file = None
         self.online = []
         self.path = os.path.join(stmc.return_main_dir(), "server") # путь к папке сервера
         # for i in os.listdir(self.path):
@@ -255,12 +256,16 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
 
 # Инициализация сервера
 server = server_manager()
-# Важны момент!
+# Важный момент!
 
 if server.core == None:
-    err = "Ошибка инициализации сервера: не найден файл сервера (.jar)"
+    err = "Не найден файл сервера (.jar)"
     stmc.add_line(err)
     print(err)
+    if server.start_file:
+        print(f"Обнаружен файл старта сервера: {server.start_file}")
+else:
+    print(f"Обнаружено ядро сервера: {server.core}")
 
 @socketio.on('connect', namespace='/server')
 def handle_connect():

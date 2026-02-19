@@ -36,7 +36,6 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
                 self.core = i
                 print(f"{self.core} обнаружено")
                 break
-
         if self.core == None:
             for i in os.listdir(self.path):
                 if ".sh" in i or ".bat" in i:

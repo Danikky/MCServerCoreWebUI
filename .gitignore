@@ -1,4 +1,4 @@
-server
+server/*
 *.pyc
 __pycache__
 *.egg-info

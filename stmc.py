@@ -64,6 +64,7 @@ def add_line(line):
     try:
         conn = sqlite3.connect(f"{db_name}")
         c = conn.cursor()
+        print(line)
         c.execute("INSERT INTO console_output (line) VALUES (?)", (line,))
     except Exception as e:
         print(f"При добавлении линии произошла ошибка: {e}")

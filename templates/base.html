@@ -12,17 +12,19 @@
     ul {list-style-type: none}
     .card-header-pills {
         align-items: center;
+        background-color: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(3px);
     }
     .nav-link {
         color: white;
     }
 </style>
 <body>
-    <header class="card">
+    <header class="card-header-pills">
         <h3>пасхалко</h3>
     </header>
-    <header class="card card-header-pills fixed-top">
-        <ul class="nav nav-pills align-items-md-center">
+    <header class="card-header-pills fixed-top">
+        <ul class="nav nav-pills">
             <li class="nav-item">
                 <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}" {% if request.path == '/' %}aria-current="page"{% endif %}>
                     На главную

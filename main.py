@@ -12,6 +12,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import stmc
 import datetime as dt
 import json
+import threading
 
 stmc.init_db()
 app = Flask(__name__)
@@ -88,6 +89,7 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
         if not self.proccess or self.proccess.poll() is not None:
             return "Сервер не запущен"
         try:
+            stmc.add_line(f"[{time.ctime()} USER]> {command}")
             self.proccess.stdin.write(command + '\n')
             self.proccess.stdin.flush()
             time.sleep(0.1)
@@ -97,22 +99,24 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
             return f"Ошибка отправки команды: {str(e)}"
     
     def system_monitoring(self):
-        self.cpu = psutil.cpu_percent(interval=1)
-        self.cpu_cores = psutil.cpu_count(logical=True)
-        self.memory = psutil.virtual_memory()
-        self.disk = psutil.disk_usage('/')
-        return {
-            "cpu_percent": f"{server.cpu}%",
-            "cpu_cores": server.cpu_cores,
-            "ram_total": f"{round(server.memory.total / (1024 ** 3), 1)} GB",
-            "ram_used": f"{round(server.memory.used / (1024 ** 3), 1)} GB",
-            "ram_available": f"{round(server.memory.available / (1024 ** 3), 1)} GB",
-            "ram_percent": f"{server.memory.percent}%",
-            "disk_total": f"{round(server.disk.total / (1024 ** 3), 1)} GB",
-            "disk_used": f"{round(server.disk.used / (1024 ** 3), 1)} GB",
-            "disk_free": f"{round(server.disk.free / (1024 ** 3), 1)} GB",
-            "disk_percent": f"{server.disk.percent}%"
-        }
+        while True:
+            time.sleep(5)
+            self.cpu = psutil.cpu_percent(interval=1)
+            self.cpu_cores = psutil.cpu_count(logical=True)
+            self.memory = psutil.virtual_memory()
+            self.disk = psutil.disk_usage('/')
+            return {
+                "cpu_percent": f"{server.cpu}%",
+                "cpu_cores": server.cpu_cores,
+                "ram_total": f"{round(server.memory.total / (1024 ** 3), 1)} GB",
+                "ram_used": f"{round(server.memory.used / (1024 ** 3), 1)} GB",
+                "ram_available": f"{round(server.memory.available / (1024 ** 3), 1)} GB",
+                "ram_percent": f"{server.memory.percent}%",
+                "disk_total": f"{round(server.disk.total / (1024 ** 3), 1)} GB",
+                "disk_used": f"{round(server.disk.used / (1024 ** 3), 1)} GB",
+                "disk_free": f"{round(server.disk.free / (1024 ** 3), 1)} GB",
+                "disk_percent": f"{server.disk.percent}%"
+            }
     
     def console_event_check(self, line: str):
         if "You need to agree to the EULA in order to run the server" in line:
@@ -258,14 +262,14 @@ class server_manager(): # КЛАСС ДОЛЖЕН БЫТЬ ТУТ!!!
 server = server_manager()
 # Важный момент!
 
-if server.core == None:
-    err = "Не найден файл сервера (.jar)"
-    stmc.add_line(err)
-    print(err)
-    if server.start_file:
-        print(f"Обнаружен файл старта сервера: {server.start_file}")
-else:
-    print(f"Обнаружено ядро сервера: {server.core}")
+#if server.core == None:
+#    err = "Не найден файл сервера (.jar)"
+#    stmc.add_line(err)
+#    print(err)
+#    if server.start_file:
+#        print(f"Обнаружен файл старта сервера: {server.start_file}")
+#else:
+#    print(f"Обнаружено ядро сервера: {server.core}")
 
 @socketio.on('connect', namespace='/server')
 def handle_connect():

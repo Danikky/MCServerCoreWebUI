@@ -454,7 +454,7 @@ def server_players():
             return render_template("server_players.html", players_data=players_data, online=online)
         else:
             online = [0, server.get_properties_value("max-players")]
-            if online[1]:
+            if server.core:
                 players_data = server.update_players_data()
                 return render_template("server_players.html", players_data=players_data, online=online)
             else:

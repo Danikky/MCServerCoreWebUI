@@ -44,7 +44,7 @@ Control panel
             {% if is_server_run %}
                 <h1 class="text text-white">Console
                     <h1 class="text card">
-                        online: 0 / 20
+                        online: {{ online[0] }} / {{ online[1] }}
                     </h1>
                 </h1>
             {% else %}
@@ -53,8 +53,8 @@ Control panel
         </div>
         <form method="post">
             <div id="console-output" class="console-container scroll-container">
-                 <pre>
-                 </pre>
+                <pre>
+                </pre>
             </div>
             {% if is_server_run %}
                 <br><input type="text" name="console_input" id="console_input" class="form-control", placeholder="Enter command"><br>
@@ -68,6 +68,7 @@ Control panel
                 </div>
             {% endif %}
         </form>
+        <h1>Лютый текст</h1>
     </div>
     <!-- <div>
         <div class="card alert alert-info">

@@ -346,11 +346,11 @@ def about():
 @app.route("/server", methods=["POST", "GET"])
 @login_required
 def server_console():
-    system_data = None # server.system_monitoring() #
+    system_data = None # server.system_monitoring() 
     if server.is_server_running():
-        online_players = server.online
+        online = [len(server.online), server.get_properties_value("max-players")]
     else:
-        online_players = []
+        online = [0, server.get_properties_value("max-players")]
     if request.method == "POST":
         console_input = request.form.get("console_input")
         command = request.form.get("command")
@@ -372,10 +372,10 @@ def server_console():
             else:
                 server.send_command_direct(command)
         is_server_run = server.is_server_running()
-        return render_template("control_panel.html", is_server_run=is_server_run, system_data=system_data, online_players=online_players)
+        return render_template("control_panel.html", is_server_run=is_server_run, system_data=system_data, online=online)
     else:
         is_server_run = server.is_server_running()
-        return render_template("control_panel.html", is_server_run=is_server_run, system_data=system_data, online_players=online_players)
+        return render_template("control_panel.html", is_server_run=is_server_run, system_data=system_data, online=online)
 
 # Маршрут для получения истории консоли
 @app.route("/get_console_history")

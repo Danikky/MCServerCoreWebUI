@@ -1,10 +1,13 @@
 {% extends 'base.html' %}
-
-{% block title %}ERROR{% endblock %}
+{% block title %}Ошибка{% endblock %}
 
 {% block body %}
-ERROR
-<div>
-    <h1>{{error}}</h1>
+<div class="container-mc" style="display:flex;align-items:center;justify-content:center;min-height:60vh">
+  <div style="text-align:center;max-width:400px">
+    <div style="font-size:48px;margin-bottom:16px">⚠</div>
+    <h2 style="font-family:var(--font-mono);font-size:18px;color:var(--danger);margin-bottom:8px">Ошибка</h2>
+    <p style="color:var(--text-secondary);font-family:var(--font-mono);font-size:13px;margin-bottom:24px">{{ error }}</p>
+    <a href="/server" class="btn-mc btn-ghost-mc">← Вернуться в консоль</a>
+  </div>
 </div>
 {% endblock %}

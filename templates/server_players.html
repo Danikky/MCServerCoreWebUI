@@ -1,72 +1,122 @@
 {% extends 'base.html' %}
-
-{% block title %}
-Players
-{% endblock %}
+{% block title %}Игроки{% endblock %}
 
 {% block body %}
-<style>
-    .card {
-        background-color: rgba(0, 0, 0, 0.2);
-    }
-</style>
+<div class="container-mc">
+  <div class="page-title">
+    <h1>Игроки</h1>
+    <span>{{ online[0] }} / {{ online[1] }} онлайн</span>
+  </div>
 
+  <div class="grid-2" style="gap:16px;align-items:start">
 
-<div class="card card-body">
-    <h1 class="card text">Онлайн: {{online[0]}} / {{online[1]}}</h1>
-    <div class="card card-body" style="padding: 1%;">
-        <h1 class="text">Список игроков:</h1>
-        <form method="post">
+    <!-- Online now -->
+    <div class="card-mc">
+      <div class="card-header-mc">
+        <h3 class="card-title-mc">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Сейчас онлайн
+        </h3>
+        <span class="badge-mc badge-green">{{ online[0] }}</span>
+      </div>
+      {% if players_data["online"] %}
         {% for el in players_data["online"] %}
-            <input type="hidden" name="username" value="{{el}}">
-            <div class="card">
-                <h3 class="text">{{el}}</h3>
-                <h4 class="text">{{players_data["usercache"]}}
-                    {% if el in players_data["oplist"] %}
-                        <button class="btn btn-danger" name="command" value="deop">deop</button>
-                    {% else %}
-                        <button class="btn btn-success" name="command" value="op">op</button>
-                    {% endif %}
-                    <button class="btn btn-danger" name="command" value="kick">kick</button>
-                    <button class="btn btn-danger" name="command" value="ban">ban</button>
-                </h4>
+        <form method="post" style="margin-bottom:8px">
+          <input type="hidden" name="username" value="{{ el }}">
+          <div class="player-card">
+            <div class="player-avatar">
+              <img src="https://crafatar.com/avatars/{{ el }}?size=38&overlay" alt="{{ el }}" onerror="this.style.display='none'">
             </div>
+            <span class="player-name">{{ el }}</span>
+            <div class="player-actions">
+              {% if el in players_data["oplist"] %}
+                <button class="btn-mc btn-warn-mc" name="command" value="deop" style="padding:5px 10px;font-size:11px">deop</button>
+              {% else %}
+                <button class="btn-mc btn-info-mc" name="command" value="op" style="padding:5px 10px;font-size:11px">op</button>
+              {% endif %}
+              <button class="btn-mc btn-warn-mc" name="command" value="kick" style="padding:5px 10px;font-size:11px">kick</button>
+              <button class="btn-mc btn-danger-mc" name="command" value="ban" style="padding:5px 10px;font-size:11px">ban</button>
+            </div>
+          </div>
+        </form>
         {% endfor %}
-        </form>
-        <form method="post">
-            <div>
-                <h1 class="text" >Op-list:</h1>
-                {% for el in players_data["oplist"] %}
-                    <input type="hidden" name="username" value="{{el}}">
-                    <div class="card">
-                        <h3 class="text">{{el}}<button class="btn btn-danger" name="command" value="deop">deop</button></h3>
-                    </div>
-                {% endfor %}
-            </div>
-        </form>
-        <form method="post">
-            <div>
-                <h1 class="text">Ban-list:</h1>
-                {% for el in players_data["banlist"] %}
-                    <input type="hidden" name="username" value="{{el}}">
-                    <div class="card">
-                        <h3 class="text">{{el}}<button class="btn btn-danger" name="command" value="pardon">remove</button></h3>
-                    </div>
-                {% endfor %}
-            </div>
-        </form>
-        <form method="post">
-            <div>
-                <h1 class="text">Whitelist:</h1>
-                {% for el in players_data["whitelist"] %}
-                    <input type="hidden" name="username" value="{{el}}">
-                    <div class="card">
-                        <h3 class="text">{{el}}<button class="btn btn-danger" name="command" value="whitelist remove">remove</button></h3>
-                    </div>
-                {% endfor %}
-            </div>
-        </form>
+      {% else %}
+        <div style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-mono);font-size:13px">Никого нет онлайн</div>
+      {% endif %}
     </div>
-</div>
 
+    <div style="display:flex;flex-direction:column;gap:16px">
+
+      <!-- Ops -->
+      <div class="card-mc">
+        <div class="card-header-mc">
+          <h3 class="card-title-mc">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Операторы
+          </h3>
+          <span class="badge-mc badge-yellow">{{ players_data["oplist"]|length }}</span>
+        </div>
+        {% for el in players_data["oplist"] %}
+        <form method="post" style="margin-bottom:6px">
+          <input type="hidden" name="username" value="{{ el }}">
+          <div class="player-card" style="padding:9px 12px">
+            <div class="player-avatar" style="width:28px;height:28px">
+              <img src="https://crafatar.com/avatars/{{ el }}?size=28&overlay" alt="{{ el }}" onerror="this.style.display='none'">
+            </div>
+            <span class="player-name" style="font-size:13px">{{ el }}</span>
+            <button class="btn-mc btn-danger-mc" name="command" value="deop" style="padding:4px 9px;font-size:11px">deop</button>
+          </div>
+        </form>
+        {% else %}
+          <div style="color:var(--text-muted);font-family:var(--font-mono);font-size:12px;padding:8px 0">Список пуст</div>
+        {% endfor %}
+      </div>
+
+      <!-- Ban list -->
+      <div class="card-mc">
+        <div class="card-header-mc">
+          <h3 class="card-title-mc">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+            Заблокированные
+          </h3>
+          <span class="badge-mc badge-red">{{ players_data["banlist"]|length }}</span>
+        </div>
+        {% for el in players_data["banlist"] %}
+        <form method="post" style="margin-bottom:6px">
+          <input type="hidden" name="username" value="{{ el }}">
+          <div class="player-card" style="padding:9px 12px;border-color:rgba(248,113,113,0.15)">
+            <span class="player-name" style="font-size:13px">{{ el }}</span>
+            <button class="btn-mc btn-ghost-mc" name="command" value="pardon" style="padding:4px 9px;font-size:11px">помиловать</button>
+          </div>
+        </form>
+        {% else %}
+          <div style="color:var(--text-muted);font-family:var(--font-mono);font-size:12px;padding:8px 0">Список пуст</div>
+        {% endfor %}
+      </div>
+
+      <!-- Whitelist -->
+      <div class="card-mc">
+        <div class="card-header-mc">
+          <h3 class="card-title-mc">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            Вайтлист
+          </h3>
+          <span class="badge-mc badge-blue">{{ players_data["whitelist"]|length }}</span>
+        </div>
+        {% for el in players_data["whitelist"] %}
+        <form method="post" style="margin-bottom:6px">
+          <input type="hidden" name="username" value="{{ el }}">
+          <div class="player-card" style="padding:9px 12px">
+            <span class="player-name" style="font-size:13px">{{ el }}</span>
+            <button class="btn-mc btn-danger-mc" name="command" value="whitelist remove" style="padding:4px 9px;font-size:11px">убрать</button>
+          </div>
+        </form>
+        {% else %}
+          <div style="color:var(--text-muted);font-family:var(--font-mono);font-size:12px;padding:8px 0">Список пуст</div>
+        {% endfor %}
+      </div>
+
+    </div>
+  </div>
+</div>
 {% endblock %}

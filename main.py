@@ -466,7 +466,32 @@ def server_players():
                 return render_template("error.html", error=e)
 
 # Страница со списком бекапов и возможностью их создавать
-@app.route("/server/backups")
+@app.route("/api/stats")
+@login_required
+def api_stats():
+    cpu = psutil.cpu_percent(interval=0.2)
+    mem = psutil.virtual_memory()
+    disk = psutil.disk_usage('/')
+    return jsonify({
+        "cpu_percent": round(cpu, 1),
+        "ram_used": f"{round(mem.used / (1024**3), 1)} GB",
+        "ram_total": f"{round(mem.total / (1024**3), 1)} GB",
+        "ram_percent": round(mem.percent, 1),
+        "disk_used": f"{round(disk.used / (1024**3), 1)} GB",
+        "disk_total": f"{round(disk.total / (1024**3), 1)} GB",
+        "disk_percent": round(disk.percent, 1),
+    })
+
+@app.route("/api/status")
+@login_required
+def api_status():
+    return jsonify({
+        "running": server.is_server_running(),
+        "online": len(server.online),
+        "max": server.get_properties_value("max-players"),
+    })
+
+@app.route("/server/backups", methods=["GET", "POST"])
 @login_required
 def backups_page():
     backups_list = server.get_backups_list()

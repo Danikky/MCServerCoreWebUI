@@ -1,36 +1,36 @@
 {% extends 'base.html' %}
-
-{% block title %}Settings{% endblock %}
+{% block title %}Настройки{% endblock %}
 
 {% block body %}
-<div class="container-fluid px-0">
-    <div class="card card-body bg-transparent">
-        <form method="post">
-            <h1 class="card card-group mb-4 text">
-                Настройки сервера 
-                <button type="submit" class="btn btn-success">
-                    <h3 class="text">Сохранить изменения</h3>
-                </button>
-            </h1>
-            <div class="row">
-                {% for el in properties_data %}
-                    <div class="col-3 mb-2">
-                        <div class="card">
-                            <h5 class="card text">{{ el[0] }}</h5>
-                            <input type="text" 
-                                   name="{{ el[0] }}" 
-                                   class="form-control" 
-                                   placeholder="{{ el[1] }}">
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-            <div class="text-center mt-4">
-                <button type="submit" class="btn btn-success col-lg-12">
-                    Сохранить изменения
-                </button>
-            </div>
-        </form>
+<div class="container-mc">
+  <div class="flex-between" style="margin-bottom:20px">
+    <div class="page-title" style="margin-bottom:0">
+      <h1>Настройки сервера</h1>
+      <span>server.properties</span>
     </div>
+    <form method="post" id="settings-form">
+      <button type="submit" class="btn-mc btn-primary-mc">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Сохранить изменения
+      </button>
+    </form>
+  </div>
+
+  <div class="card-mc">
+    <div class="settings-grid">
+      {% for el in properties_data %}
+      <div class="setting-item">
+        <div class="setting-key">{{ el[0] }}</div>
+        <input
+          type="text"
+          name="{{ el[0] }}"
+          form="settings-form"
+          class="form-control"
+          value="{{ el[1] }}"
+          placeholder="{{ el[1] }}">
+      </div>
+      {% endfor %}
+    </div>
+  </div>
 </div>
 {% endblock %}

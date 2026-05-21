@@ -1,139 +1,198 @@
 {% extends 'base.html' %}
-
-{% block title %}
-Control panel
-{% endblock %}
+{% block title %}Консоль{% endblock %}
 
 {% block body %}
-<style>
-    .fonter {
-        font-family: monospace;
-    }
-    
-    .console-container {
-        background-color: #161515; /* Темный фон контейнера */
-        border: 2px solid #404040;
-        border-radius: 8px;
-        padding: 10px;
-        color: #e0e0e0; /* Цвет текста */
-    }
+<div class="container-mc">
 
-    .scroll-container {
-        max-height: 60vh; /* Максимальная высота 60% от высоты экрана */
-        height: 900px; /* Фиксированная высота по умолчанию */
-        overflow-y: auto; /* Вертикальный скролл */
-        background-color: rgba(0, 0, 0, 0.5);
-        padding: 15px;
-        border: 0px;
-        margin-bottom: 20px;
-    }
-
-    .scroll-container::-webkit-scrollbar {
-        width: 8px;
-        background-color: rgba(0, 0, 0, 0.3);
-    }
-
-    .scroll-container::-webkit-scrollbar-thumb {
-        background-color: rgba(255, 255, 255, 0.3);
-        border-radius: 4px;
-    }
-</style>
-<div class="container-fluid vh-100 m-0" style="padding-left: 5%; padding-right: 5%;">
-    <div class="card card-body">
-        <div class="">
-            {% if is_server_run %}
-                <h1 class="text text-white">Console
-                    <h1 class="text card">
-                        online: {{ online[0] }} / {{ online[1] }}
-                    </h1>
-                </h1>
-            {% else %}
-                <h1 class="text-center text-white">Console (Сервер выключен)</h1>
-            {% endif %}
-        </div>
-        <form method="post">
-            <div id="console-output" class="console-container scroll-container">
-                <pre>
-                </pre>
-            </div>
-            {% if is_server_run %}
-                <br><input type="text" name="console_input" id="console_input" class="form-control", placeholder="Enter command"><br>
-                <input type="submit" class="btn btn-success" value="отправить">
-                <input type="submit" name="command" class="btn btn-warning float-end" value="restart">
-                <input type="submit" name="command" class="btn btn-danger float-end" style="margin-right: 10px;" value="kill">
-                <input type="submit" name="command" class="btn btn-danger float-end" style="margin-right: 10px;" value="stop">
-            {% else %}
-                <div class="row">
-                    <input type="submit" name="command" class="btn btn-success float-end" style="margin-right: 10px;" value="start">
-                </div>
-            {% endif %}
+  <!-- Title + controls -->
+  <div class="flex-between" style="margin-bottom:20px">
+    <div class="page-title" style="margin-bottom:0">
+      <h1>Консоль</h1>
+      {% if is_server_run %}
+        <span class="badge-mc badge-green">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block"></span>
+          Online · {{ online[0] }} / {{ online[1] }}
+        </span>
+      {% else %}
+        <span class="badge-mc badge-red">Offline</span>
+      {% endif %}
+    </div>
+    <div class="flex gap-8">
+      {% if is_server_run %}
+        <form method="post" style="display:inline">
+          <button name="command" value="stop" class="btn-mc btn-warn-mc">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+            Stop
+          </button>
         </form>
-        <h1>Лютый текст</h1>
+        <form method="post" style="display:inline">
+          <button name="command" value="kill" class="btn-mc btn-danger-mc">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Kill
+          </button>
+        </form>
+      {% else %}
+        <form method="post" style="display:inline">
+          <button name="command" value="start" class="btn-mc btn-primary-mc">
+            <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Запустить сервер
+          </button>
+        </form>
+      {% endif %}
     </div>
-    <!-- <div>
-        <div class="card alert alert-info">
-            <h1>Процессор (CPU): </h1>
-            <div>
-                <h2>Ядра: {{system_data["cpu_cores"]}}</h2>
-                <h2>Нагрузка: {{system_data["cpu_percent"]}}</h2>
-            </div>
+  </div>
+
+  <!-- Console + sidebar -->
+  <div class="grid-2" style="grid-template-columns:1fr 320px;gap:16px;align-items:start">
+
+    <!-- Console card -->
+    <div>
+      <div class="console-wrap">
+        <div class="console-bar">
+          <div class="console-dots">
+            <span class="dot-red"></span>
+            <span class="dot-yellow"></span>
+            <span class="dot-green"></span>
+          </div>
+          <span class="console-label">server.log — live</span>
+          <button onclick="document.getElementById('console-output').innerHTML=''" class="btn-mc btn-ghost-mc" style="padding:3px 9px;font-size:11px">Очистить</button>
         </div>
-        <div class="card alert alert-info">
-            <h1>Оперативная память (RAM): </h1>
-            <div>
-                <h2>Всего: {{system_data["ram_total"]}}</h2>
-                <h2>Использовано: {{system_data["ram_used"]}} / {{system_data["ram_total"]}} | {{system_data["ram_percent"]}}</h2>
-            </div>
+        <div class="console-output" id="console-output"></div>
+        {% if is_server_run %}
+        <form method="post" id="cmd-form">
+          <div class="console-input-row">
+            <span class="console-prompt">$</span>
+            <input type="text" name="console_input" id="console_input" class="console-input" placeholder="Введите команду..." autocomplete="off">
+            <button type="submit" class="btn-mc btn-ghost-mc" style="padding:5px 10px;font-size:11px">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </form>
+        {% else %}
+        <div class="console-input-row" style="justify-content:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono)">
+          Сервер не запущен
         </div>
-        <div class="card alert alert-info">
-            <h1>Дисковое пространство: </h1>
-            <div>
-                <h2>Всего: {{system_data["disk_total"]}}</h2>
-                <h2>Использовано: {{system_data["disk_used"]}} / {{system_data["disk_total"]}} | {{system_data["disk_percent"]}}</h2>
-            </div>
-        </div>
+        {% endif %}
+      </div>
     </div>
-    <div class="text-center alert alert-info">
-        <h1>Онлайн: {{online_players}}</h1>
+
+    <!-- Sidebar stats -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card-mc">
+        <div class="card-header-mc">
+          <h3 class="card-title-mc">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Ресурсы
+          </h3>
+        </div>
+        <div id="stats-content">
+          <div style="color:var(--text-muted);font-size:12px;font-family:var(--font-mono);text-align:center;padding:16px 0">Загрузка...</div>
+        </div>
+      </div>
+
+      <div class="card-mc">
+        <div class="card-header-mc">
+          <h3 class="card-title-mc">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            Онлайн
+          </h3>
+          <span class="badge-mc badge-gray" id="online-count">{{ online[0] }} / {{ online[1] }}</span>
+        </div>
+        <div id="online-list" style="display:flex;flex-direction:column;gap:6px">
+          {% if online[0] == 0 %}
+            <div style="color:var(--text-muted);font-size:12px;font-family:var(--font-mono);text-align:center;padding:10px 0">Никого нет</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card-mc">
+        <div class="card-header-mc">
+          <h3 class="card-title-mc">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Быстрые команды
+          </h3>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          {% if is_server_run %}
+          <form method="post"><button name="console_input" value="list" class="btn-mc btn-ghost-mc w-full" style="justify-content:flex-start">list</button></form>
+          <form method="post"><button name="console_input" value="save-all" class="btn-mc btn-ghost-mc w-full" style="justify-content:flex-start">save-all</button></form>
+          <form method="post"><button name="console_input" value="time set day" class="btn-mc btn-ghost-mc w-full" style="justify-content:flex-start">time set day</button></form>
+          <form method="post"><button name="console_input" value="weather clear" class="btn-mc btn-ghost-mc w-full" style="justify-content:flex-start">weather clear</button></form>
+          {% else %}
+          <div style="color:var(--text-muted);font-size:12px;font-family:var(--font-mono);text-align:center;padding:10px 0">Запустите сервер</div>
+          {% endif %}
+        </div>
+      </div>
     </div>
-    <div class="text-center mt-4">
-        <button type="submit" name="command" value="enable_rcon" class="btn btn-success btn-lg">
-            Включить RCON
-        </button>
-    </div> -->
+
+  </div>
 </div>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const socket = io('/server');  // Указываем Namespace
+document.addEventListener('DOMContentLoaded', function() {
+  const consoleDiv = document.getElementById('console-output');
+  const socket = io('/server');
 
-        // Обработка новых сообщений
-        socket.on('console_update', function(data) {
-            const consoleDiv = document.getElementById('console-output');
-            const newLine = document.createElement('p');
-            newLine.className = 'fonter';
-            newLine.textContent = data.line;
-            consoleDiv.appendChild(newLine);
-            consoleDiv.scrollTop = consoleDiv.scrollHeight; // Автоскролл
-        });
+  function colorize(text) {
+    const el = document.createElement('div');
+    el.style.cssText = 'font-family:var(--font-mono);font-size:12px;line-height:1.7';
+    const lc = text.toLowerCase();
+    if (lc.includes('warn')) el.className = 'console-line-warn';
+    else if (lc.includes('error') || lc.includes('exception')) el.className = 'console-line-error';
+    else if (lc.includes('joined the game') || lc.includes('left the game')) el.className = 'console-line-success';
+    else if (lc.includes('[user]') || lc.includes('> ')) el.className = 'console-line-user';
+    else if (lc.includes('done') || lc.includes('starting')) el.className = 'console-line-info';
+    el.textContent = text;
+    return el;
+  }
 
-        // Загрузка истории при открытии
-        fetch('/get_console_history')
-            .then(response => response.json())
-            .then(data => {
-                const consoleDiv = document.getElementById('console-output');
-                data.history.forEach(line => {
-                    const p = document.createElement('p');
-                    p.className = 'fonter';
-                    p.textContent = line;
-                    consoleDiv.appendChild(p);
-                });
-                consoleDiv.scrollTop = consoleDiv.scrollHeight;
-            });
+  socket.on('console_update', function(data) {
+    consoleDiv.appendChild(colorize(data.line));
+    consoleDiv.scrollTop = consoleDiv.scrollHeight;
+  });
 
-        // Обработка ошибок
-        socket.on('connect_error', (err) => {
-            console.error('Ошибка подключения:', err);
-        });
+  fetch('/get_console_history')
+    .then(r => r.json())
+    .then(data => {
+      data.history.forEach(line => consoleDiv.appendChild(colorize(line)));
+      consoleDiv.scrollTop = consoleDiv.scrollHeight;
     });
+
+  socket.on('connect_error', err => console.error('WS error:', err));
+
+  // Enter to submit command
+  const cmdInput = document.getElementById('console_input');
+  if (cmdInput) {
+    cmdInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('cmd-form').submit();
+      }
+    });
+  }
+
+  // Resource stats polling
+  function loadStats() {
+    fetch('/api/stats').then(r => r.json()).then(d => {
+      const html = `
+        <div class="resource-bar-wrap">
+          <div class="resource-bar-label"><span>CPU</span><span>${d.cpu_percent}%</span></div>
+          <div class="resource-bar-track"><div class="resource-bar-fill ${d.cpu_percent > 80 ? 'bar-red' : d.cpu_percent > 50 ? 'bar-yellow' : 'bar-green'}" style="width:${d.cpu_percent}%"></div></div>
+        </div>
+        <div class="resource-bar-wrap">
+          <div class="resource-bar-label"><span>RAM</span><span>${d.ram_used} / ${d.ram_total}</span></div>
+          <div class="resource-bar-track"><div class="resource-bar-fill ${parseFloat(d.ram_percent) > 80 ? 'bar-red' : parseFloat(d.ram_percent) > 60 ? 'bar-yellow' : 'bar-blue'}" style="width:${d.ram_percent}%"></div></div>
+        </div>
+        <div class="resource-bar-wrap" style="margin-bottom:0">
+          <div class="resource-bar-label"><span>Disk</span><span>${d.disk_used} / ${d.disk_total}</span></div>
+          <div class="resource-bar-track"><div class="resource-bar-fill ${parseFloat(d.disk_percent) > 80 ? 'bar-red' : 'bar-blue'}" style="width:${d.disk_percent}%"></div></div>
+        </div>
+      `;
+      document.getElementById('stats-content').innerHTML = html;
+    }).catch(() => {});
+  }
+  loadStats();
+  setInterval(loadStats, 3000);
+});
 </script>
 {% endblock %}

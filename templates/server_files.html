@@ -1,46 +1,78 @@
 {% extends 'base.html' %}
-
-{% block title %}
-File manager
-{% endblock %}
+{% block title %}Файлы{% endblock %}
 
 {% block body %}
-<div class="card card-body">
-    <div class="table">
-        <h1 class="text">Файлы:</h1>
-        <form method="post">
-            <div class="tablet">
-                <input type="text" name="item" id="item" class="form-control", placeholder="Enter new file/dir name">
-                <button class="btn btn-success" name="command" value="make">
-                    Создать папку/файл
-                </button>
-            </div>
-        </form>
+<div class="container-mc">
+  <div class="flex-between" style="margin-bottom:20px">
+    <div class="page-title" style="margin-bottom:0">
+      <h1>Файловый менеджер</h1>
+      <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">/{{ path.replace('+', '/') }}</span>
     </div>
-    {% for el in dir_list %}
-        <div class="card card">
-            <form method="post">
-                <div>
-                    <input type="hidden" name="item" value="{{el}}">
-                    {% if "." in el%}
-                        <button class="btn btn-succes text" name="command" value="open">{{el}}</button>
-                    {% else %}
-                        <a href="/server/files/{{path}}+{{el}}" class="btn btn-primary">
-                            {{el}}
-                        </a>
-                    {% endif %}
-                    {% if is_renaming[0] == el %}
-                        {% if is_renaming[1] == True %}
-                            <input type="text" name="new_name" id="new_name", placeholder="{{el}}">
-                            <button class="btn btn-success" name="command" value="rename">submit</button>
-                        {% endif %}
-                    {% else %}
-                        <button class="btn btn-warning" name="command" value="rename">Rename</button>
-                    {% endif %}
-                    <button class="btn btn-danger" name="command" value="delete">Delete</button>
-                </div>
-            </form>
-        </div>
+    <form method="post" style="display:flex;gap:8px;align-items:center">
+      <input type="text" name="item" class="form-control" placeholder="имя файла или папки" style="width:220px">
+      <button class="btn-mc btn-ghost-mc" name="command" value="make">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Создать
+      </button>
+    </form>
+  </div>
+
+  <!-- Breadcrumb -->
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;font-family:var(--font-mono);font-size:12px;color:var(--text-muted)">
+    <a href="/server/files/server" style="color:var(--text-secondary);text-decoration:none">server</a>
+    {% set parts = path.split('+') %}
+    {% for part in parts[1:] %}
+      <span style="color:var(--text-muted)">/</span>
+      <span style="color:var(--text-primary)">{{ part }}</span>
     {% endfor %}
+  </div>
+
+  <div class="card-mc" style="padding:8px">
+    {% if not dir_list %}
+      <div style="text-align:center;padding:40px;color:var(--text-muted);font-family:var(--font-mono);font-size:13px">Папка пуста</div>
+    {% endif %}
+    {% for el in dir_list %}
+      {% set is_dir = '.' not in el %}
+      {% set is_jar = el.endswith('.jar') %}
+      {% set is_config = el.endswith('.yml') or el.endswith('.yaml') or el.endswith('.properties') or el.endswith('.json') or el.endswith('.toml') %}
+      <form method="post">
+        <input type="hidden" name="item" value="{{ el }}">
+        <div class="file-item">
+          <div class="file-icon {% if is_dir %}folder{% elif is_jar %}jar{% elif is_config %}config{% else %}file{% endif %}">
+            {% if is_dir %}
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            {% elif is_jar %}
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            {% elif is_config %}
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            {% else %}
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            {% endif %}
+          </div>
+
+          {% if is_dir %}
+            <a href="/server/files/{{ path }}+{{ el }}" class="file-name" style="text-decoration:none">{{ el }}/</a>
+          {% else %}
+            <span class="file-name">{{ el }}</span>
+          {% endif %}
+
+          <div class="file-actions">
+            {% if is_renaming[0] == el and is_renaming[1] %}
+              <input type="text" name="new_name" class="form-control" placeholder="{{ el }}" style="width:160px">
+              <button class="btn-mc btn-primary-mc" name="command" value="rename" style="padding:5px 10px;font-size:11px">✓</button>
+            {% else %}
+              <button class="btn-mc btn-ghost-mc" name="command" value="rename" style="padding:5px 10px;font-size:11px">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="btn-mc btn-danger-mc" name="command" value="delete" style="padding:5px 10px;font-size:11px"
+                onclick="return confirm('Удалить {{ el }}?')">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              </button>
+            {% endif %}
+          </div>
+        </div>
+      </form>
+    {% endfor %}
+  </div>
 </div>
 {% endblock %}

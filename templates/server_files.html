@@ -6,7 +6,7 @@
   <div class="flex-between" style="margin-bottom:20px">
     <div class="page-title" style="margin-bottom:0">
       <h1>Файловый менеджер</h1>
-      <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">/{{ path.replace('+', '/') }}</span>
+      <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">/{{ subpath }}</span>
     </div>
     <form method="post" style="display:flex;gap:8px;align-items:center">
       <input type="text" name="item" class="form-control" placeholder="имя файла или папки" style="width:220px">
@@ -19,9 +19,9 @@
 
   <!-- Breadcrumb -->
   <div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;font-family:var(--font-mono);font-size:12px;color:var(--text-muted)">
-    <a href="/server/files/server" style="color:var(--text-secondary);text-decoration:none">server</a>
-    {% set parts = path.split('+') %}
-    {% for part in parts[1:] %}
+    <a href="{{ url_for('files.server_files_to', server_id=current_server.id) }}" style="color:var(--text-secondary);text-decoration:none">{{ current_server.name }}</a>
+    {% set parts = subpath.split('/') if subpath else [] %}
+    {% for part in parts %}
       <span style="color:var(--text-muted)">/</span>
       <span style="color:var(--text-primary)">{{ part }}</span>
     {% endfor %}
@@ -35,6 +35,9 @@
       {% set is_dir = '.' not in el %}
       {% set is_jar = el.endswith('.jar') %}
       {% set is_config = el.endswith('.yml') or el.endswith('.yaml') or el.endswith('.properties') or el.endswith('.json') or el.endswith('.toml') %}
+      {% set is_binary = el.lower().endswith(('.jar', '.zip', '.gz', '.tar', '.7z', '.rar', '.mca', '.dat', '.nbt', '.png', '.jpg', '.jpeg', '.gif', '.ico', '.db', '.so', '.dll', '.exe', '.class', '.bin')) %}
+      {% set is_editable = not is_dir and not is_binary %}
+      {% set el_subpath = subpath + '/' + el if subpath else el %}
       <form method="post">
         <input type="hidden" name="item" value="{{ el }}">
         <div class="file-item">
@@ -51,7 +54,9 @@
           </div>
 
           {% if is_dir %}
-            <a href="/server/files/{{ path }}+{{ el }}" class="file-name" style="text-decoration:none">{{ el }}/</a>
+            <a href="{{ url_for('files.server_files_to', server_id=current_server.id, subpath=el_subpath) }}" class="file-name" style="text-decoration:none">{{ el }}/</a>
+          {% elif is_editable %}
+            <a href="{{ url_for('editor.edit_file', server_id=current_server.id, subpath=el_subpath) }}" class="file-name" style="text-decoration:none">{{ el }}</a>
           {% else %}
             <span class="file-name">{{ el }}</span>
           {% endif %}
@@ -61,6 +66,12 @@
               <input type="text" name="new_name" class="form-control" placeholder="{{ el }}" style="width:160px">
               <button class="btn-mc btn-primary-mc" name="command" value="rename" style="padding:5px 10px;font-size:11px">✓</button>
             {% else %}
+              {% if is_editable %}
+              <a href="{{ url_for('editor.edit_file', server_id=current_server.id, subpath=el_subpath) }}" class="btn-mc btn-ghost-mc" style="padding:5px 10px;font-size:11px">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Открыть
+              </a>
+              {% endif %}
               <button class="btn-mc btn-ghost-mc" name="command" value="rename" style="padding:5px 10px;font-size:11px">
                 <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </button>

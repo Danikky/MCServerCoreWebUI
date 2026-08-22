@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Редактор{% endblock %}
+
+{% block body %}
+<div class="container-mc">
+  <div class="flex-between" style="margin-bottom:20px">
+    <div class="page-title" style="margin-bottom:0">
+      <h1>Редактирование файла</h1>
+      <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">/{{ subpath }}</span>
+    </div>
+    <div class="flex gap-8">
+      <a href="{{ back_url }}" class="btn-mc btn-ghost-mc">← Назад</a>
+      <button type="submit" form="editor-form" class="btn-mc btn-primary-mc">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Сохранить
+      </button>
+    </div>
+  </div>
+
+  <form method="post" id="editor-form">
+    <textarea name="content" class="form-control" id="editor-textarea"
+      style="width:100%;min-height:70vh;font-size:13px;line-height:1.6;resize:vertical;tab-size:2"
+      spellcheck="false" autocapitalize="off" autocomplete="off">{{ content }}</textarea>
+  </form>
+</div>
+
+<script>
+  // Ctrl/Cmd+S — сохранить, не дожидаясь клика по кнопке. Табуляция в
+  // текстовом поле вставляет реальный таб, а не переключает фокус.
+  document.addEventListener('DOMContentLoaded', function() {
+    const ta = document.getElementById('editor-textarea');
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        document.getElementById('editor-form').submit();
+      }
+    });
+    ta.addEventListener('keydown', function(e) {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = ta.selectionStart, end = ta.selectionEnd;
+        ta.value = ta.value.slice(0, start) + '\t' + ta.value.slice(end);
+        ta.selectionStart = ta.selectionEnd = start + 1;
+      }
+    });
+  });
+</script>
+{% endblock %}

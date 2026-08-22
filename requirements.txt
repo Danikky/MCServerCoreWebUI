@@ -1,10 +1,12 @@
 Flask
 Flask-Login
 Flask-SocketIO
+Flask-SQLAlchemy
+Flask-WTF
 Jinja2
 MarkupSafe
-mcrcon
 psutil
+python-dotenv
 python-engineio
 python-socketio
 simple-websocket

@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Статус серверов{% endblock %}
+
+{% block body %}
+<div class="container-mc">
+  <div class="page-title">
+    <h1>Статус серверов</h1>
+    <span>{{ servers|length }} шт.</span>
+  </div>
+
+  {% if servers %}
+  <div class="grid-3">
+    {% for s in servers %}
+    <div class="card-mc">
+      <div class="flex-between" style="margin-bottom:12px">
+        <span style="font-family:var(--font-mono);font-weight:600;font-size:15px;color:var(--text-primary)">{{ s.name }}</span>
+        {% if s.status == 'running' %}
+          <span class="badge-mc badge-green">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block"></span>
+            Онлайн
+          </span>
+        {% elif s.status == 'starting' %}
+          <span class="badge-mc badge-blue">Запускается</span>
+        {% elif s.status == 'restarting' %}
+          <span class="badge-mc badge-yellow">Перезапускается</span>
+        {% else %}
+          <span class="badge-mc badge-gray">Офлайн</span>
+        {% endif %}
+      </div>
+
+      {% if s.description %}
+      <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin:0 0 14px">{{ s.description }}</p>
+      {% endif %}
+
+      <div style="display:flex;flex-direction:column;gap:8px;font-family:var(--font-mono);font-size:13px">
+        {% if s.version %}
+        <div class="flex-between">
+          <span style="color:var(--text-muted)">Версия</span>
+          <span style="color:var(--text-secondary)">{{ s.version }}</span>
+        </div>
+        {% endif %}
+        {% if s.ip %}
+        <div class="flex-between">
+          <span style="color:var(--text-muted)">IP</span>
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="color:var(--accent)">{{ s.ip }}</span>
+            <button type="button" class="btn-copy-ip" data-ip="{{ s.ip }}" title="Скопировать IP"
+              style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:2px;display:flex">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </span>
+        </div>
+        {% endif %}
+
+        {% if s.online_players %}
+        <details class="online-details">
+          <summary class="flex-between">
+            <span style="color:var(--text-muted)">Игроков</span>
+            <span style="color:var(--text-secondary)">{{ s.online }}{% if s.max_players %} / {{ s.max_players }}{% endif %} ▾</span>
+          </summary>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+            {% for p in s.online_players %}
+              <span class="badge-mc badge-gray">{{ p }}</span>
+            {% endfor %}
+          </div>
+        </details>
+        {% else %}
+        <div class="flex-between">
+          <span style="color:var(--text-muted)">Игроков</span>
+          <span style="color:var(--text-secondary)">{{ s.online }}{% if s.max_players %} / {{ s.max_players }}{% endif %}</span>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if s.contact %}
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--glass-border)">
+        {% if s.contact.startswith('http://') or s.contact.startswith('https://') %}
+          <a href="{{ s.contact }}" target="_blank" rel="noopener noreferrer" class="btn-mc btn-ghost-mc w-full" style="justify-content:center">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Связаться с админом
+          </a>
+        {% else %}
+          <div style="font-size:12px;color:var(--text-muted);text-align:center;font-family:var(--font-mono)">{{ s.contact }}</div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card-mc" style="text-align:center;padding:60px 0">
+    <div style="font-size:40px;margin-bottom:12px">🖥</div>
+    <p style="color:var(--text-secondary);font-family:var(--font-mono);font-size:14px;margin:0">Пока нет публичных серверов</p>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.btn-copy-ip');
+    if (!btn) return;
+    const ip = btn.dataset.ip;
+    navigator.clipboard.writeText(ip).then(function() {
+      const original = btn.innerHTML;
+      btn.style.color = 'var(--accent)';
+      btn.innerHTML = '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+      setTimeout(function() {
+        btn.innerHTML = original;
+        btn.style.color = '';
+      }, 1200);
+    }).catch(function() {});
+  });
+</script>
+{% endblock %}

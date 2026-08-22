@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block title %}Ядро{% endblock %}
+
+{% block body %}
+<div class="container-mc">
+  <div class="page-title">
+    <h1>Ядро сервера</h1>
+    <span>{{ current_server.name }}</span>
+  </div>
+
+  <div class="grid-2" style="gap:16px;align-items:start">
+
+    <div class="card-mc">
+      <div class="card-header-mc">
+        <h3 class="card-title-mc">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Загрузить файл
+        </h3>
+      </div>
+      <form method="post" action="{{ url_for('core.upload', server_id=current_server.id) }}" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:10px">
+        <input type="file" name="corefile" accept=".jar" required class="form-control">
+        <button class="btn-mc btn-primary-mc w-full" style="justify-content:center">Загрузить .jar</button>
+      </form>
+    </div>
+
+    <div class="card-mc">
+      <div class="card-header-mc">
+        <h3 class="card-title-mc">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          Скачать по ссылке
+        </h3>
+      </div>
+      <form method="post" action="{{ url_for('core.fetch', server_id=current_server.id) }}" style="display:flex;flex-direction:column;gap:10px">
+        <input type="url" name="url" class="form-control" placeholder="https://.../paper-1.21.jar" required>
+        <input type="text" name="filename" class="form-control" placeholder="имя файла (необязательно)">
+        <button class="btn-mc btn-primary-mc w-full" style="justify-content:center">Скачать</button>
+      </form>
+      <p style="font-size:11px;color:var(--text-muted);margin:10px 0 0">
+        Ссылка должна вести напрямую на .jar (например, сборка Paper/Purpur/Fabric).
+        Скачивание доступно только admin — панель доверяет введённой ссылке.
+      </p>
+    </div>
+
+  </div>
+
+  <div class="card-mc" style="margin-top:16px">
+    <div class="card-header-mc">
+      <h3 class="card-title-mc">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        Публичная информация
+      </h3>
+    </div>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 14px">
+      Что видят игроки на <a href="{{ url_for('public.status_page') }}" style="color:var(--accent)">странице статуса</a> —
+      вписывается вручную, не определяется автоматически. Число онлайн и статус — реальные, остальное — как заполнишь.
+    </p>
+    <form method="post" action="{{ url_for('core.update_public', server_id=current_server.id) }}">
+      <div class="settings-grid" style="margin-bottom:14px">
+        <div class="setting-item">
+          <div class="setting-key">Название</div>
+          <input type="text" name="public_name" class="form-control" placeholder="{{ current_server.name }}" value="{{ row.public_name or '' }}">
+        </div>
+        <div class="setting-item">
+          <div class="setting-key">Версия</div>
+          <input type="text" name="public_version" class="form-control" placeholder="1.21.1 Paper" value="{{ row.public_version or '' }}">
+        </div>
+        <div class="setting-item">
+          <div class="setting-key">IP</div>
+          <input type="text" name="public_ip" class="form-control" placeholder="play.example.com" value="{{ row.public_ip or '' }}">
+        </div>
+        <div class="setting-item">
+          <div class="setting-key">Связь с админом</div>
+          <input type="text" name="public_contact" class="form-control" placeholder="https://discord.gg/..." value="{{ row.public_contact or '' }}">
+        </div>
+      </div>
+      <div class="form-group-mc">
+        <label class="form-label-mc">Описание</label>
+        <textarea name="public_description" class="form-control" rows="3" placeholder="Пара слов о сервере — режим, правила, что тут особенного">{{ row.public_description or '' }}</textarea>
+      </div>
+      <label class="switch-mc" style="font-size:13px;color:var(--text-secondary);margin-bottom:14px">
+        <input type="checkbox" name="public_visible" {% if row.public_visible %}checked{% endif %}>
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+        Показывать этот сервер на публичной странице статуса
+      </label>
+      <button class="btn-mc btn-primary-mc">Сохранить</button>
+    </form>
+  </div>
+
+  <div class="card-mc" style="margin-top:16px">
+    <div class="card-header-mc">
+      <h3 class="card-title-mc">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Найденные .jar в папке сервера
+      </h3>
+      <span class="badge-mc badge-gray">{{ core_files|length }}</span>
+    </div>
+    {% if core_files %}
+      {% for f in core_files %}
+      <div class="file-item" style="cursor:default">
+        <div class="file-icon jar">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </div>
+        <span class="file-name">{{ f }}</span>
+        {% if loop.first %}<span class="badge-mc badge-green" style="margin-right:8px">будет использовано при старте</span>{% endif %}
+        <form method="post" action="{{ url_for('core.delete', server_id=current_server.id, filename=f) }}"
+              onsubmit="return confirm('Удалить {{ f }}?')">
+          <button class="btn-mc btn-danger-mc" style="padding:5px 10px;font-size:11px">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          </button>
+        </form>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-mono);font-size:13px">
+        Ядро не найдено — загрузите файл или скачайте по ссылке выше
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

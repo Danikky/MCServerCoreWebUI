@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Серверы{% endblock %}
+
+{% block body %}
+<div class="container-mc">
+  <div class="flex-between" style="margin-bottom:20px">
+    <div class="page-title" style="margin-bottom:0">
+      <h1>Серверы</h1>
+      <span>{{ servers|length }} шт.</span>
+    </div>
+  </div>
+
+  {% if current_user.is_admin %}
+  <div class="card-mc" style="margin-bottom:20px">
+    <div class="card-header-mc">
+      <h3 class="card-title-mc">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Новый сервер
+      </h3>
+    </div>
+    <form method="post" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <label class="form-label-mc">Название</label>
+        <input type="text" name="name" class="form-control" placeholder="Survival" required>
+      </div>
+      <div>
+        <label class="form-label-mc">Xmx</label>
+        <input type="text" name="java_xmx" class="form-control" style="width:90px" value="{{ default_xmx }}">
+      </div>
+      <div>
+        <label class="form-label-mc">Xms</label>
+        <input type="text" name="java_xms" class="form-control" style="width:90px" value="{{ default_xms }}">
+      </div>
+      <button class="btn-mc btn-primary-mc">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Создать
+      </button>
+    </form>
+  </div>
+  {% endif %}
+
+  {% if servers %}
+  <div class="grid-3">
+    {% for s in servers %}
+    <div class="card-mc">
+      <a href="{{ url_for('console.server_console', server_id=s.id) }}" style="text-decoration:none;display:block">
+        <div class="flex-between" style="margin-bottom:10px">
+          <span style="font-family:var(--font-mono);font-weight:600;color:var(--text-primary)">{{ s.name }}</span>
+          {% if statuses[s.id] %}
+            <span class="badge-mc badge-green">Online</span>
+          {% else %}
+            <span class="badge-mc badge-gray">Offline</span>
+          {% endif %}
+        </div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">servers/{{ s.slug }}</div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:4px">Xmx {{ s.java_xmx }} · Xms {{ s.java_xms }}</div>
+      </a>
+      {% if current_user.is_admin %}
+      <form method="post" action="{{ url_for('servers.delete_server', server_id=s.id) }}"
+            onsubmit="return confirm('Убрать «{{ s.name }}» из панели? Файлы на диске останутся.')"
+            style="margin-top:12px">
+        <button class="btn-mc btn-ghost-mc" style="font-size:11px;padding:4px 10px;width:100%;justify-content:center">Убрать из панели</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card-mc" style="text-align:center;padding:60px 0">
+    <div style="font-size:40px;margin-bottom:12px">🖥</div>
+    <p style="color:var(--text-secondary);font-family:var(--font-mono);font-size:14px;margin:0">Серверов пока нет</p>
+    <p style="color:var(--text-muted);font-size:12px;margin-top:6px">Создайте первый сервер выше</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

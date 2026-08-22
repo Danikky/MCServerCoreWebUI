@@ -13,52 +13,75 @@
 
   <!-- Navigation -->
   <nav class="navbar-mc">
-    <a href="/" class="navbar-brand">
+    <a href="{{ url_for('misc.index') }}" class="navbar-brand">
       <div class="brand-icon">⛏</div>
       MCServerCore
+    </a>
+
+    <div class="nav-sep"></div>
+    <a href="{{ url_for('public.status_page') }}" class="nav-link-mc {% if request.path == url_for('public.status_page') %}active{% endif %}">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      Статус
     </a>
 
     {% if current_user.is_authenticated %}
     <div class="nav-sep"></div>
 
-    <a href="/server" class="nav-link-mc {% if request.path == '/server' %}active{% endif %}">
+    <a href="{{ url_for('servers.list_servers') }}" class="nav-link-mc {% if request.path == url_for('servers.list_servers') %}active{% endif %}">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="7" rx="1"/><rect x="14" y="4" width="7" height="7" rx="1"/><rect x="3" y="15" width="7" height="7" rx="1"/><rect x="14" y="15" width="7" height="7" rx="1"/></svg>
+      Серверы
+    </a>
+
+    {% if current_server %}
+    <div class="nav-sep"></div>
+    <span class="badge-mc badge-gray" style="font-family:var(--font-mono)">{{ current_server.name }}</span>
+
+    <a href="{{ url_for('console.server_console', server_id=current_server.id) }}" class="nav-link-mc {% if request.path == url_for('console.server_console', server_id=current_server.id) %}active{% endif %}">
       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
       Консоль
     </a>
-    <a href="/server/players" class="nav-link-mc {% if '/players' in request.path %}active{% endif %}">
+    <a href="{{ url_for('players.server_players', server_id=current_server.id) }}" class="nav-link-mc {% if '/players' in request.path %}active{% endif %}">
       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       Игроки
     </a>
-    <a href="/server/settings" class="nav-link-mc {% if '/settings' in request.path %}active{% endif %}">
+    <a href="{{ url_for('settings.server_settings', server_id=current_server.id) }}" class="nav-link-mc {% if '/settings' in request.path %}active{% endif %}">
       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 0-14.14 0M4.93 19.07a10 10 0 0 0 14.14 0M21.66 9a10 10 0 0 0-10-4.9M2.34 15a10 10 0 0 0 10 4.9M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
       Настройки
     </a>
-    <a href="/server/files/server" class="nav-link-mc {% if '/files' in request.path %}active{% endif %}">
+    {% if current_user.is_admin %}
+    <a href="{{ url_for('files.server_files_to', server_id=current_server.id) }}" class="nav-link-mc {% if '/files' in request.path %}active{% endif %}">
       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
       Файлы
     </a>
-    <a href="/server/backups" class="nav-link-mc {% if '/backups' in request.path %}active{% endif %}">
+    <a href="{{ url_for('backups.backups_page', server_id=current_server.id) }}" class="nav-link-mc {% if '/backups' in request.path %}active{% endif %}">
       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.56"/></svg>
       Бекапы
     </a>
+    <a href="{{ url_for('core.core_page', server_id=current_server.id) }}" class="nav-link-mc {% if '/core' in request.path %}active{% endif %}">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      Ядро
+    </a>
+    {% endif %}
+    {% endif %}
 
     <div class="nav-spacer"></div>
 
+    {% if current_server %}
     <div class="server-status-badge" id="nav-status-badge">
       <span class="status-dot" id="nav-status-dot"></span>
       <span id="nav-status-text">—</span>
     </div>
-
     <div class="nav-sep"></div>
+    {% endif %}
 
-    <a href="/logout" class="nav-link-mc" style="color: var(--danger);">
+    <a href="{{ url_for('auth.logout') }}" class="nav-link-mc" style="color: var(--danger);">
       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Выход
     </a>
 
     {% else %}
     <div class="nav-spacer"></div>
-    <a href="/login" class="nav-link-mc {% if '/login' in request.path %}active{% endif %}">Войти</a>
+    <a href="{{ url_for('auth.login') }}" class="nav-link-mc {% if '/login' in request.path %}active{% endif %}">Войти</a>
     {% endif %}
   </nav>
 
@@ -80,20 +103,39 @@
     {% block body %}{% endblock %}
   </div>
 
-  {% if current_user.is_authenticated %}
+  <script>
+    // Автоматически проставляет CSRF-токен во все POST-формы на странице,
+    // чтобы не дублировать скрытое поле в каждом шаблоне вручную.
+    (function() {
+      var token = {{ csrf_token()|tojson }};
+      document.querySelectorAll('form').forEach(function(f) {
+        if (f.method.toLowerCase() === 'post' && !f.querySelector('input[name="csrf_token"]')) {
+          var input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'csrf_token';
+          input.value = token;
+          f.appendChild(input);
+        }
+      });
+    })();
+  </script>
+
+  {% if current_server %}
   <script>
     (function() {
       const dot = document.getElementById('nav-status-dot');
       const txt = document.getElementById('nav-status-text');
+      const LABELS = {
+        running: ['status-dot online', 'ONLINE · '],
+        starting: ['status-dot starting', 'STARTING'],
+        restarting: ['status-dot starting', 'RESTARTING'],
+        offline: ['status-dot offline', 'OFFLINE'],
+      };
       function checkStatus() {
-        fetch('/api/status').then(r => r.json()).then(d => {
-          if (d.running) {
-            dot.className = 'status-dot online';
-            txt.textContent = 'ONLINE · ' + (d.online || 0) + ' pl';
-          } else {
-            dot.className = 'status-dot offline';
-            txt.textContent = 'OFFLINE';
-          }
+        fetch('{{ url_for("api.api_status", server_id=current_server.id) }}').then(r => r.json()).then(d => {
+          const [cls, label] = LABELS[d.status] || LABELS.offline;
+          dot.className = cls;
+          txt.textContent = d.status === 'running' ? (label + (d.online || 0) + ' pl') : label;
         }).catch(() => {
           dot.className = 'status-dot';
           txt.textContent = '—';

@@ -1,6 +1,8 @@
-server/*
+servers/*
 *.pyc
 __pycache__
 *.egg-info
 *.db
 *.venv
+.env
+.flask_secret_key

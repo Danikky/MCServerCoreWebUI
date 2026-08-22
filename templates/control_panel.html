@@ -8,17 +8,28 @@
   <div class="flex-between" style="margin-bottom:20px">
     <div class="page-title" style="margin-bottom:0">
       <h1>Консоль</h1>
-      {% if is_server_run %}
+      {% if status == 'running' %}
         <span class="badge-mc badge-green">
           <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block"></span>
           Online · {{ online[0] }} / {{ online[1] }}
         </span>
+      {% elif status == 'starting' %}
+        <span class="badge-mc badge-blue">Запускается…</span>
+      {% elif status == 'restarting' %}
+        <span class="badge-mc badge-yellow">Перезапускается…</span>
       {% else %}
         <span class="badge-mc badge-red">Offline</span>
       {% endif %}
     </div>
     <div class="flex gap-8">
+      {% if current_user.is_admin %}
       {% if is_server_run %}
+        <form method="post" style="display:inline">
+          <button name="command" value="restart" class="btn-mc btn-info-mc" {% if status == 'restarting' %}disabled{% endif %}>
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.56"/></svg>
+            Restart
+          </button>
+        </form>
         <form method="post" style="display:inline">
           <button name="command" value="stop" class="btn-mc btn-warn-mc">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
@@ -39,6 +50,9 @@
           </button>
         </form>
       {% endif %}
+      {% else %}
+        <span class="badge-mc badge-gray">Только просмотр</span>
+      {% endif %}
     </div>
   </div>
 
@@ -58,7 +72,7 @@
           <button onclick="document.getElementById('console-output').innerHTML=''" class="btn-mc btn-ghost-mc" style="padding:3px 9px;font-size:11px">Очистить</button>
         </div>
         <div class="console-output" id="console-output"></div>
-        {% if is_server_run %}
+        {% if is_server_run and current_user.is_admin %}
         <form method="post" id="cmd-form">
           <div class="console-input-row">
             <span class="console-prompt">$</span>
@@ -70,7 +84,7 @@
         </form>
         {% else %}
         <div class="console-input-row" style="justify-content:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono)">
-          Сервер не запущен
+          {% if not is_server_run %}Сервер не запущен{% else %}Только просмотр — команды доступны admin{% endif %}
         </div>
         {% endif %}
       </div>
@@ -113,13 +127,15 @@
           </h3>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px">
-          {% if is_server_run %}
+          {% if is_server_run and current_user.is_admin %}
           <form method="post"><button name="console_input" value="list" class="btn-mc btn-ghost-mc w-full" style="justify-content:flex-start">list</button></form>
           <form method="post"><button name="console_input" value="save-all" class="btn-mc btn-ghost-mc w-full" style="justify-content:flex-start">save-all</button></form>
           <form method="post"><button name="console_input" value="time set day" class="btn-mc btn-ghost-mc w-full" style="justify-content:flex-start">time set day</button></form>
           <form method="post"><button name="console_input" value="weather clear" class="btn-mc btn-ghost-mc w-full" style="justify-content:flex-start">weather clear</button></form>
-          {% else %}
+          {% elif not is_server_run %}
           <div style="color:var(--text-muted);font-size:12px;font-family:var(--font-mono);text-align:center;padding:10px 0">Запустите сервер</div>
+          {% else %}
+          <div style="color:var(--text-muted);font-size:12px;font-family:var(--font-mono);text-align:center;padding:10px 0">Доступно только admin</div>
           {% endif %}
         </div>
       </div>
@@ -130,8 +146,15 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  const SERVER_ID = {{ current_server.id|tojson }};
   const consoleDiv = document.getElementById('console-output');
   const socket = io('/server');
+
+  socket.on('connect', function() {
+    // Живая консоль скоуплена по комнатам server-<id> на бэкенде — без join
+    // клиент не получит вообще ничего (см. app/__init__.py handle_join).
+    socket.emit('join', {server_id: SERVER_ID});
+  });
 
   function colorize(text) {
     const el = document.createElement('div');
@@ -151,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
     consoleDiv.scrollTop = consoleDiv.scrollHeight;
   });
 
-  fetch('/get_console_history')
+  fetch('{{ url_for("console.get_console_history", server_id=current_server.id) }}')
     .then(r => r.json())
     .then(data => {
       data.history.forEach(line => consoleDiv.appendChild(colorize(line)));

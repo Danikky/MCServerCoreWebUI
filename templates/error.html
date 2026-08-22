@@ -7,7 +7,11 @@
     <div style="font-size:48px;margin-bottom:16px">⚠</div>
     <h2 style="font-family:var(--font-mono);font-size:18px;color:var(--danger);margin-bottom:8px">Ошибка</h2>
     <p style="color:var(--text-secondary);font-family:var(--font-mono);font-size:13px;margin-bottom:24px">{{ error }}</p>
-    <a href="/server" class="btn-mc btn-ghost-mc">← Вернуться в консоль</a>
+    {% if current_server %}
+      <a href="{{ url_for('console.server_console', server_id=current_server.id) }}" class="btn-mc btn-ghost-mc">← Вернуться в консоль</a>
+    {% else %}
+      <a href="{{ url_for('servers.list_servers') }}" class="btn-mc btn-ghost-mc">← К списку серверов</a>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

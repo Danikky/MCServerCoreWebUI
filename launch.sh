@@ -15,6 +15,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 cd "$SCRIPT_DIR"
 
+if [ -d ".git" ]; then
+    echo "Обновление из git..."
+    git pull || echo "Не удалось выполнить git pull — запускаю с текущей версией." >&2
+fi
+
 VENV_DIR=".venv"
 
 if [ ! -d "$VENV_DIR" ]; then

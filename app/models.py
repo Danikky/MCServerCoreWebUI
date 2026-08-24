@@ -58,16 +58,6 @@ class Server(db.Model):
     public_description = db.Column(db.Text, nullable=True)
     public_contact = db.Column(db.String(255), nullable=True)  # ссылка на Discord/сайт/т.п. или просто текст
 
-    # Для лаунчера (app/routes/launcher.py) — машиночитаемые, в отличие от
-    # public_*, которые человек может вписать в свободной форме. mc_version
-    # пуст, пока admin не впишет явно — сервер без него не попадает в
-    # /launcher/servers (см. launcher.py). modloader/modloader_version —
-    # задел на будущее (синхронизация модов), пока не редактируются в UI и
-    # нигде не используются, кроме как отдаются в манифесте как есть.
-    mc_version = db.Column(db.String(20), nullable=True)
-    modloader = db.Column(db.String(20), nullable=False, default="vanilla")
-    modloader_version = db.Column(db.String(20), nullable=True)
-
 
 class ConsoleLine(db.Model):
     __tablename__ = "console_output"
@@ -78,33 +68,43 @@ class ConsoleLine(db.Model):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
 
-def ensure_schema_migrations() -> None:
+TASK_TYPES = ("backup", "restart", "stop", "start", "command")
+SCHEDULE_KINDS = ("interval", "daily", "cron")
+
+
+class ScheduledTask(db.Model):
     """
-    В проекте нет Alembic/Flask-Migrate — db.create_all() создаёт только
-    отсутствующие ТАБЛИЦЫ, а не колонки в уже существующих. Поэтому новые
-    поля модели (напр. mc_version/modloader/modloader_version у Server)
-    сами по себе не появятся в уже развёрнутой БД. Это не миграционный
-    фреймворк, а тот же pragmatic-паттерн, что и
-    config._load_or_create_secret_key() — тихий самовосстанавливающийся
-    startup-код: смотрим, каких колонок не хватает, докидываем их через
-    ALTER TABLE (SQLite это умеет дёшево). Вызывается из create_app() сразу
-    после db.create_all().
+    Задача планировщика (app/scheduler.py) — авто-бекап/рестарт/стоп/старт/
+    произвольная команда по расписанию. Сама таблица — источник правды;
+    APScheduler в рантайме держит только производные от неё джобы в памяти
+    и перечитывает эту таблицу заново при каждом изменении (см.
+    TaskScheduler.sync_from_db) — так что тут никогда не может накопиться
+    расхождение между тем, что видит admin в UI, и тем, что реально
+    выполняется.
     """
-    inspector = db.inspect(db.engine)
-    if "servers" not in inspector.get_table_names():
-        return  # таблицы ещё нет — её создаст db.create_all(), колонки будут сразу
-    existing = {col["name"] for col in inspector.get_columns("servers")}
-    wanted = {
-        "mc_version": "VARCHAR(20)",
-        "modloader": "VARCHAR(20) NOT NULL DEFAULT 'vanilla'",
-        "modloader_version": "VARCHAR(20)",
-    }
-    missing = {name: ddl for name, ddl in wanted.items() if name not in existing}
-    if not missing:
-        return
-    with db.engine.begin() as conn:
-        for name, ddl in missing.items():
-            conn.execute(db.text(f"ALTER TABLE servers ADD COLUMN {name} {ddl}"))
+    __tablename__ = "scheduled_tasks"
+
+    id = db.Column(db.Integer, primary_key=True)
+    server_id = db.Column(db.Integer, db.ForeignKey("servers.id"), nullable=False, index=True)
+    server = db.relationship("Server", backref=db.backref("scheduled_tasks", cascade="all, delete-orphan"))
+
+    type = db.Column(db.String(20), nullable=False)  # см. TASK_TYPES
+    # Для type="command" — сам текст команды. Для type="backup" — префикс
+    # имени бекапа (по умолчанию "auto"), тот же, что get_backups_list()
+    # потом матчит при отборе на удаление по retention.
+    payload = db.Column(db.String(255), nullable=True)
+    # Сколько последних бекапов с этим префиксом хранить, старше — удаляются
+    # после каждого успешного авто-бекапа. Только для type="backup".
+    retention = db.Column(db.Integer, nullable=True)
+
+    schedule_kind = db.Column(db.String(20), nullable=False)  # см. SCHEDULE_KINDS
+    # interval → число часов ("6"); daily → "HH:MM"; cron → сырое cron-выражение.
+    schedule_value = db.Column(db.String(100), nullable=False)
+
+    enabled = db.Column(db.Boolean, nullable=False, default=True)
+    last_run_at = db.Column(db.DateTime, nullable=True)
+    last_run_status = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
 
 
 def ensure_first_admin(username: str, password: str | None) -> None:

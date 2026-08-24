@@ -69,11 +69,6 @@
           <input type="text" name="public_ip" class="form-control" placeholder="play.example.com" value="{{ row.public_ip or '' }}">
         </div>
         <div class="setting-item">
-          <div class="setting-key">Версия для лаунчера</div>
-          <input type="text" name="mc_version" class="form-control" placeholder="1.21.4" value="{{ row.mc_version or '' }}">
-          <div style="font-size:10px;color:var(--text-muted);margin-top:4px">Точный номер версии MC — по нему лаунчер качает клиент. Пока пусто, сервер не появится в лаунчере.</div>
-        </div>
-        <div class="setting-item">
           <div class="setting-key">Связь с админом</div>
           <input type="text" name="public_contact" class="form-control" placeholder="https://discord.gg/..." value="{{ row.public_contact or '' }}">
         </div>

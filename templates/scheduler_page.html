@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block title %}Планировщик{% endblock %}
+
+{% block body %}
+<div class="container-mc">
+  <div class="page-title">
+    <h1>Планировщик задач</h1>
+    <span>{{ tasks|length }} шт.</span>
+  </div>
+
+  <div class="card-mc" style="margin-bottom:16px">
+    <div class="card-header-mc">
+      <h3 class="card-title-mc">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Новая задача
+      </h3>
+    </div>
+    <form method="post" action="{{ url_for('scheduler.create_task', server_id=current_server.id) }}" id="task-form">
+      <div class="settings-grid" style="margin-bottom:14px">
+        <div class="setting-item">
+          <div class="setting-key">Что делать</div>
+          <select name="type" id="task-type" class="form-control">
+            {% for t in task_types %}
+              <option value="{{ t }}">{{ {'backup': 'Бекап', 'restart': 'Рестарт', 'stop': 'Стоп', 'start': 'Старт', 'command': 'Команда в консоль'}[t] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="setting-item">
+          <div class="setting-key">Когда</div>
+          <select name="schedule_kind" id="schedule-kind" class="form-control">
+            <option value="interval">Каждые N часов</option>
+            <option value="daily">Ежедневно в</option>
+            <option value="cron">Cron (для продвинутых)</option>
+          </select>
+        </div>
+
+        <div class="setting-item" data-kind="interval">
+          <div class="setting-key">Интервал (часов)</div>
+          <input type="number" name="value_interval" class="form-control" min="0.5" step="0.5" value="6">
+        </div>
+        <div class="setting-item" data-kind="daily" style="display:none">
+          <div class="setting-key">Время</div>
+          <input type="time" name="value_daily" class="form-control" value="04:00">
+        </div>
+        <div class="setting-item" data-kind="cron" style="display:none">
+          <div class="setting-key">Cron-выражение</div>
+          <input type="text" name="value_cron" class="form-control" placeholder="0 4 * * *">
+        </div>
+
+        <div class="setting-item" data-type="command" style="display:none">
+          <div class="setting-key">Текст команды</div>
+          <input type="text" name="payload" class="form-control" placeholder="say Скоро рестарт">
+        </div>
+        <div class="setting-item" data-type="backup" style="display:none">
+          <div class="setting-key">Префикс имени бекапа</div>
+          <input type="text" name="backup_prefix" class="form-control" placeholder="auto" value="auto">
+        </div>
+        <div class="setting-item" data-type="backup" style="display:none">
+          <div class="setting-key">Хранить последних бекапов</div>
+          <input type="number" name="retention" class="form-control" min="1" placeholder="без ограничения">
+        </div>
+      </div>
+      <button class="btn-mc btn-primary-mc">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Создать задачу
+      </button>
+    </form>
+  </div>
+
+  {% if tasks %}
+  <div class="card-stack">
+    {% for t in tasks %}
+    <div class="card-mc">
+      <div class="flex-between" style="margin-bottom:10px">
+        <span style="font-family:var(--font-mono);font-weight:600;color:var(--text-primary)">
+          {{ {'backup': '💾 Бекап', 'restart': '🔄 Рестарт', 'stop': '⏹ Стоп', 'start': '▶ Старт', 'command': '⌨ Команда'}[t.type] }}
+          {% if t.type == 'command' %}<span style="color:var(--text-muted)">— {{ t.payload }}</span>{% endif %}
+          {% if t.type == 'backup' and t.payload %}<span style="color:var(--text-muted)">— префикс «{{ t.payload }}»{% if t.retention %}, хранить {{ t.retention }}{% endif %}</span>{% endif %}
+        </span>
+        <form method="post" action="{{ url_for('scheduler.toggle_task', server_id=current_server.id, task_id=t.id) }}" style="margin:0">
+          <label class="switch-mc" style="margin:0">
+            <input type="checkbox" onchange="this.form.submit()" {% if t.enabled %}checked{% endif %}>
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+        </form>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;font-family:var(--font-mono);font-size:13px">
+        <div class="flex-between">
+          <span style="color:var(--text-muted)">Расписание</span>
+          <span style="color:var(--text-secondary)">
+            {% if t.schedule_kind == 'interval' %}каждые {{ t.schedule_value }} ч
+            {% elif t.schedule_kind == 'daily' %}ежедневно в {{ t.schedule_value }}
+            {% else %}cron: {{ t.schedule_value }}
+            {% endif %}
+          </span>
+        </div>
+        <div class="flex-between">
+          <span style="color:var(--text-muted)">Последний запуск</span>
+          <span style="color:var(--text-secondary)">
+            {% if t.last_run_at %}{{ t.last_run_at.strftime('%Y-%m-%d %H:%M') }} — {{ t.last_run_status }}{% else %}ещё не запускалась{% endif %}
+          </span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <form method="post" action="{{ url_for('scheduler.run_task', server_id=current_server.id, task_id=t.id) }}">
+          <button class="btn-mc btn-ghost-mc" style="padding:6px 12px;font-size:12px">
+            <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Запустить сейчас
+          </button>
+        </form>
+        <form method="post" action="{{ url_for('scheduler.delete_task', server_id=current_server.id, task_id=t.id) }}" onsubmit="return confirm('Удалить задачу?')">
+          <button class="btn-mc btn-danger-mc" style="padding:6px 12px;font-size:12px">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            Удалить
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card-mc" style="text-align:center;padding:60px 0">
+    <div style="font-size:40px;margin-bottom:12px">⏰</div>
+    <p style="color:var(--text-secondary);font-family:var(--font-mono);font-size:14px;margin:0">Задач пока нет</p>
+    <p style="color:var(--text-muted);font-size:12px;margin-top:6px">Создайте первую выше</p>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+(function() {
+  const typeSelect = document.getElementById('task-type');
+  const kindSelect = document.getElementById('schedule-kind');
+
+  function updateVisibility() {
+    document.querySelectorAll('[data-kind]').forEach(function(el) {
+      el.style.display = el.dataset.kind === kindSelect.value ? '' : 'none';
+    });
+    document.querySelectorAll('[data-type]').forEach(function(el) {
+      el.style.display = el.dataset.type === typeSelect.value ? '' : 'none';
+    });
+  }
+  typeSelect.addEventListener('change', updateVisibility);
+  kindSelect.addEventListener('change', updateVisibility);
+  updateVisibility();
+})();
+</script>
+{% endblock %}

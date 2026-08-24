@@ -18,8 +18,9 @@ from flask_socketio import join_room
 from app.config import Config
 from app.extensions import csrf, db, login_manager, socketio
 from app.fs_utils import return_main_dir
-from app.models import User, ensure_first_admin, ensure_schema_migrations
+from app.models import User, ensure_first_admin
 from app.routes import register_blueprints
+from app.scheduler import TaskScheduler
 from app.server_registry import ServerRegistry
 
 
@@ -51,8 +52,13 @@ def create_app(config_class=Config):
 
     with app.app_context():
         db.create_all()
-        ensure_schema_migrations()
         ensure_first_admin(app.config["ADMIN_USERNAME"], app.config["ADMIN_PASSWORD"])
+
+    # Планировщик задач (авто-бекапы/рестарты/команды) — app/scheduler.py.
+    # Стартует после db.create_all()/server_registry, потому что джобы сразу
+    # читают ScheduledTask из БД и дёргают ServerManager через реестр.
+    app.task_scheduler = TaskScheduler(app)
+    app.task_scheduler.start()
 
     @app.context_processor
     def inject_current_server():

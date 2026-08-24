@@ -9,7 +9,7 @@
   </div>
 
   {% if servers %}
-  <div class="grid-3">
+  <div class="card-stack">
     {% for s in servers %}
     <div class="card-mc">
       <div class="flex-between" style="margin-bottom:12px">
@@ -37,6 +37,16 @@
         <div class="flex-between">
           <span style="color:var(--text-muted)">Версия</span>
           <span style="color:var(--text-secondary)">{{ s.version }}</span>
+        </div>
+        {% endif %}
+        {% if s.cracked is not none %}
+        <div class="flex-between">
+          <span style="color:var(--text-muted)">Вход</span>
+          {% if s.cracked %}
+            <span class="badge-mc badge-green" title="online-mode=false — заходит любой ник, лицензия не нужна">Пиратка ОК</span>
+          {% else %}
+            <span class="badge-mc badge-blue" title="online-mode=true — нужен лицензионный аккаунт">Только лицензия</span>
+          {% endif %}
         </div>
         {% endif %}
         {% if s.ip %}

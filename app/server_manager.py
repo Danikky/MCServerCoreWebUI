@@ -324,6 +324,20 @@ class ServerManager:
         except OSError:
             return None
 
+    def get_properties_bool(self, key: str) -> bool | None:
+        """True/False по строковому значению свойства ("true"/"false",
+        как обычно пишет сама Minecraft) — None, если свойства нет вовсе
+        или server.properties ещё не создан (сервер ни разу не стартовал)."""
+        raw = self.get_properties_value(key)
+        if raw is None:
+            return None
+        value = raw.strip().lower()
+        if value == "true":
+            return True
+        if value == "false":
+            return False
+        return None
+
     # ---- команды над конкретным игроком (op/deop/kick/ban/pardon/...) --------
 
     # Что проверять после каждой команды, чтобы понять — правда применилась

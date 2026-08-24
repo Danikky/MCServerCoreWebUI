@@ -40,7 +40,7 @@
   {% endif %}
 
   {% if servers %}
-  <div class="grid-3">
+  <div class="card-stack">
     {% for s in servers %}
     <div class="card-mc">
       <a href="{{ url_for('console.server_console', server_id=s.id) }}" style="text-decoration:none;display:block">

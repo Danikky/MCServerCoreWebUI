@@ -795,6 +795,10 @@ input.form-control[readonly] {
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
 .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+/* Список карточек серверов (публичная /status и админский /servers) —
+   не сетка колонками, а вертикальный стек: каждая карточка на всю ширину
+   контейнера, одна под другой, независимо от того, сколько серверов. */
+.card-stack { display: flex; flex-direction: column; gap: 14px; }
 
 @media (max-width: 900px) {
   .grid-4 { grid-template-columns: repeat(2,1fr); }

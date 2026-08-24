@@ -19,6 +19,7 @@ def status_page():
         manager = current_app.server_registry.get(row.id)
         with manager.online_lock:
             online_players = list(manager.online)
+        online_mode = manager.get_properties_bool("online-mode")
         servers.append({
             "name": row.public_name or row.name,
             "version": row.public_version,
@@ -29,5 +30,8 @@ def status_page():
             "online": len(online_players),
             "online_players": online_players,
             "max_players": manager.get_properties_value("max-players"),
+            # None, если ещё нет server.properties (сервер ни разу не стартовал) —
+            # тогда просто не показываем бейдж, а не гадаем.
+            "cracked": (not online_mode) if online_mode is not None else None,
         })
     return render_template("public_status.html", servers=servers)

@@ -45,6 +45,7 @@ def delete_server(server_id):
         flash("Сначала останови сервер")
         return redirect(url_for("servers.list_servers"))
     row = Server.query.get_or_404(server_id)
+    current_app.task_scheduler.unschedule_for_server(server_id)  # строки ScheduledTask падают каскадом ниже
     db.session.delete(row)
     db.session.commit()
     current_app.server_registry.forget(server_id)

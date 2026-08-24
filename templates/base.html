@@ -61,6 +61,10 @@
       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
       Ядро
     </a>
+    <a href="{{ url_for('scheduler.scheduler_page', server_id=current_server.id) }}" class="nav-link-mc {% if '/scheduler' in request.path %}active{% endif %}">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Планировщик
+    </a>
     {% endif %}
     {% endif %}
 

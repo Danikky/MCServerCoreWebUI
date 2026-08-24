@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>MCSC Launcher</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <div class="brand">⛏ MCSC Launcher</div>
+
+    <div class="field">
+      <label for="panel-url">Адрес панели</label>
+      <input id="panel-url" type="text" value="http://127.0.0.1:5245">
+    </div>
+    <div class="field">
+      <label for="server-id">ID сервера</label>
+      <input id="server-id" type="number" value="1" min="1">
+    </div>
+    <button id="refresh-btn" class="btn btn-ghost">Обновить</button>
+
+    <div id="server-card" class="card" style="display:none">
+      <div class="row"><span class="key">Сервер</span><span id="srv-name" class="val"></span></div>
+      <div class="row"><span class="key">IP</span><span id="srv-ip" class="val mono"></span></div>
+      <div class="row"><span class="key">Версия</span><span id="srv-version" class="val mono"></span></div>
+    </div>
+
+    <div class="field" style="margin-top:14px">
+      <label for="username">Ник (offline)</label>
+      <input id="username" type="text" placeholder="Steve">
+    </div>
+    <button id="play-btn" class="btn btn-primary" disabled>Играть</button>
+
+    <div id="status" class="status"></div>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>

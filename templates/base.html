@@ -108,6 +108,7 @@
     // чтобы не дублировать скрытое поле в каждом шаблоне вручную.
     (function() {
       var token = {{ csrf_token()|tojson }};
+      window.CSRF_TOKEN = token; // для ручных fetch/XHR запросов вне обычной формы (напр. загрузка файлов)
       document.querySelectorAll('form').forEach(function(f) {
         if (f.method.toLowerCase() === 'post' && !f.querySelector('input[name="csrf_token"]')) {
           var input = document.createElement('input');

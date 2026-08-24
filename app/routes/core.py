@@ -78,6 +78,7 @@ def update_public(server_id):
     row.public_ip = request.form.get("public_ip", "").strip() or None
     row.public_description = request.form.get("public_description", "").strip() or None
     row.public_contact = request.form.get("public_contact", "").strip() or None
+    row.mc_version = request.form.get("mc_version", "").strip() or None
     db.session.commit()
     flash("Публичная информация обновлена")
     return redirect(url_for("core.core_page", server_id=server_id))

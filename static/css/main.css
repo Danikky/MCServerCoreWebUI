@@ -644,6 +644,31 @@ input.form-control[readonly] {
 .badge-gray   { background: var(--glass-fill); color: var(--text-secondary); border: 1px solid var(--glass-border); }
 
 /* ── File manager ─────────────────────────────────────────── */
+.dropzone-mc {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1.5px dashed var(--glass-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.dropzone-mc.drag-active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--text-primary);
+}
+.dropzone-mc input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
 .file-item {
   display: flex;
   align-items: center;

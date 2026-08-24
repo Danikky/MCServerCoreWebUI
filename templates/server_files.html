@@ -27,6 +27,23 @@
     {% endfor %}
   </div>
 
+  <!-- Загрузка файлов: drag-n-drop + обычный выбор, оба ведут в тот же POST (command=upload) -->
+  <div class="card-mc" style="margin-bottom:16px;padding:14px">
+    <form method="post" enctype="multipart/form-data" id="upload-form" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <input type="hidden" name="command" value="upload">
+      <div class="dropzone-mc" id="dropzone" style="flex:1;min-width:220px">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span>Перетащи файлы сюда или выбери вручную</span>
+        <input type="file" name="upload_file" id="upload-input" multiple>
+      </div>
+      <button type="submit" class="btn-mc btn-primary-mc">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Загрузить
+      </button>
+    </form>
+    <div id="upload-progress-list" style="margin-top:10px"></div>
+  </div>
+
   <div class="card-mc" style="padding:8px">
     {% if not dir_list %}
       <div style="text-align:center;padding:40px;color:var(--text-muted);font-family:var(--font-mono);font-size:13px">Папка пуста</div>
@@ -72,6 +89,12 @@
                 Открыть
               </a>
               {% endif %}
+              {% if not is_dir %}
+              <a href="{{ url_for('files.download_file', server_id=current_server.id, subpath=el_subpath) }}" class="btn-mc btn-ghost-mc" style="padding:5px 10px;font-size:11px">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Скачать
+              </a>
+              {% endif %}
               <button class="btn-mc btn-ghost-mc" name="command" value="rename" style="padding:5px 10px;font-size:11px">
                 <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </button>
@@ -86,4 +109,95 @@
     {% endfor %}
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('upload-form');
+  const input = document.getElementById('upload-input');
+  const dropzone = document.getElementById('dropzone');
+  const progressList = document.getElementById('upload-progress-list');
+  if (!form) return;
+
+  ['dragenter', 'dragover'].forEach(function(evt) {
+    dropzone.addEventListener(evt, function(e) { e.preventDefault(); dropzone.classList.add('drag-active'); });
+  });
+  ['dragleave', 'drop'].forEach(function(evt) {
+    dropzone.addEventListener(evt, function(e) { e.preventDefault(); dropzone.classList.remove('drag-active'); });
+  });
+  dropzone.addEventListener('drop', function(e) {
+    if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);
+  });
+
+  form.addEventListener('submit', function(e) {
+    // Без выбранных файлов пусть форма ведёт себя как обычно (просто ничего не отправит полезного).
+    if (!input.files.length) return;
+    e.preventDefault();
+    uploadFiles(input.files);
+  });
+
+  function uploadFiles(fileList) {
+    let pending = fileList.length;
+    Array.from(fileList).forEach(function(file) {
+      uploadOne(file, function() {
+        pending--;
+        if (pending <= 0) setTimeout(function() { location.reload(); }, 400);
+      });
+    });
+  }
+
+  function uploadOne(file, done) {
+    const row = document.createElement('div');
+    row.className = 'resource-bar-wrap';
+    const label = document.createElement('div');
+    label.className = 'resource-bar-label';
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = file.name;
+    const pctSpan = document.createElement('span');
+    pctSpan.textContent = '0%';
+    label.appendChild(nameSpan);
+    label.appendChild(pctSpan);
+    const track = document.createElement('div');
+    track.className = 'resource-bar-track';
+    const fill = document.createElement('div');
+    fill.className = 'resource-bar-fill bar-green';
+    fill.style.width = '0%';
+    track.appendChild(fill);
+    row.appendChild(label);
+    row.appendChild(track);
+    progressList.appendChild(row);
+
+    const fd = new FormData();
+    fd.append('command', 'upload');
+    fd.append('csrf_token', window.CSRF_TOKEN);
+    fd.append('upload_file', file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', window.location.href, true);
+    xhr.upload.onprogress = function(e) {
+      if (e.lengthComputable) {
+        const p = Math.round(e.loaded / e.total * 100);
+        fill.style.width = p + '%';
+        pctSpan.textContent = p + '%';
+      }
+    };
+    xhr.onload = function() {
+      if (xhr.status >= 200 && xhr.status < 400) {
+        pctSpan.textContent = 'готово';
+      } else {
+        fill.classList.remove('bar-green');
+        fill.classList.add('bar-red');
+        pctSpan.textContent = 'ошибка';
+      }
+      done();
+    };
+    xhr.onerror = function() {
+      fill.classList.remove('bar-green');
+      fill.classList.add('bar-red');
+      pctSpan.textContent = 'ошибка сети';
+      done();
+    };
+    xhr.send(fd);
+  }
+});
+</script>
 {% endblock %}

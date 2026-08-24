@@ -68,7 +68,13 @@
             <span class="dot-yellow"></span>
             <span class="dot-green"></span>
           </div>
-          <span class="console-label">server.log — live</span>
+          <span style="display:flex;align-items:center;gap:8px">
+            <span class="console-label">server.log — live</span>
+            <span class="server-status-badge" id="ws-badge">
+              <span class="status-dot" id="ws-dot"></span>
+              <span id="ws-text">…</span>
+            </span>
+          </span>
           <button onclick="document.getElementById('console-output').innerHTML=''" class="btn-mc btn-ghost-mc" style="padding:3px 9px;font-size:11px">Очистить</button>
         </div>
         <div class="console-output" id="console-output"></div>
@@ -150,11 +156,42 @@ document.addEventListener('DOMContentLoaded', function() {
   const consoleDiv = document.getElementById('console-output');
   const socket = io('/server');
 
+  const wsDot = document.getElementById('ws-dot');
+  const wsText = document.getElementById('ws-text');
+  function setWsStatus(state) {
+    // Переиспользуем те же классы .status-dot.online/starting/offline, что и
+    // nav-бейдж статуса сервера в base.html — тот же визуальный язык.
+    const MAP = {
+      connected:    ['status-dot online', 'подключено'],
+      reconnecting: ['status-dot starting', 'переподключение…'],
+      disconnected: ['status-dot offline', 'нет связи'],
+    };
+    const [cls, label] = MAP[state] || MAP.disconnected;
+    wsDot.className = cls;
+    wsText.textContent = label;
+  }
+  setWsStatus('reconnecting'); // «подключаемся» до первого connect
+
+  let wasConnected = false;
   socket.on('connect', function() {
     // Живая консоль скоуплена по комнатам server-<id> на бэкенде — без join
     // клиент не получит вообще ничего (см. app/__init__.py handle_join).
     socket.emit('join', {server_id: SERVER_ID});
+    setWsStatus('connected');
+    if (wasConnected === false && consoleDiv.dataset.loadedOnce === '1') {
+      // Реконнект после разрыва: строки, отправленные сервером за это время,
+      // пропущены (SocketIO их никуда не буферизует) — просто перезаливаем
+      // всю историю с нуля вместо того, чтобы жить с дырой в логе.
+      consoleDiv.innerHTML = '';
+      loadHistory();
+    }
+    wasConnected = true;
   });
+  socket.on('disconnect', function() {
+    wasConnected = false;
+    setWsStatus('disconnected');
+  });
+  socket.io.on('reconnect_attempt', function() { setWsStatus('reconnecting'); });
 
   function colorize(text) {
     const el = document.createElement('div');
@@ -174,22 +211,57 @@ document.addEventListener('DOMContentLoaded', function() {
     consoleDiv.scrollTop = consoleDiv.scrollHeight;
   });
 
-  fetch('{{ url_for("console.get_console_history", server_id=current_server.id) }}')
-    .then(r => r.json())
-    .then(data => {
-      data.history.forEach(line => consoleDiv.appendChild(colorize(line)));
-      consoleDiv.scrollTop = consoleDiv.scrollHeight;
-    });
+  function loadHistory() {
+    fetch('{{ url_for("console.get_console_history", server_id=current_server.id) }}')
+      .then(r => r.json())
+      .then(data => {
+        data.history.forEach(line => consoleDiv.appendChild(colorize(line)));
+        consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        consoleDiv.dataset.loadedOnce = '1';
+      });
+  }
+  loadHistory();
 
   socket.on('connect_error', err => console.error('WS error:', err));
 
-  // Enter to submit command
+  // Enter — отправить команду; ↑/↓ — пройтись по истории отправленных
+  // команд (localStorage — страница перезагружается на каждую отправку, см.
+  // app/routes/console.py, поэтому in-memory состояние тут не пережило бы отправку).
   const cmdInput = document.getElementById('console_input');
   if (cmdInput) {
+    const HISTORY_KEY = 'mcsc_cmd_history_' + SERVER_ID;
+    const HISTORY_MAX = 50;
+    function loadCmdHistory() {
+      try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch (e) { return []; }
+    }
+    function pushCmdHistory(cmd) {
+      if (!cmd) return;
+      const hist = loadCmdHistory().filter(c => c !== cmd);
+      hist.push(cmd);
+      while (hist.length > HISTORY_MAX) hist.shift();
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(hist)); } catch (e) {}
+    }
+
+    const cmdHistory = loadCmdHistory();
+    let historyIndex = cmdHistory.length; // == длина -> сейчас не листаем историю, а печатаем своё
+    let draft = '';
+
     cmdInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') {
         e.preventDefault();
+        pushCmdHistory(cmdInput.value.trim());
         document.getElementById('cmd-form').submit();
+      } else if (e.key === 'ArrowUp') {
+        if (!cmdHistory.length) return;
+        e.preventDefault();
+        if (historyIndex === cmdHistory.length) draft = cmdInput.value;
+        historyIndex = Math.max(0, historyIndex - 1);
+        cmdInput.value = cmdHistory[historyIndex];
+      } else if (e.key === 'ArrowDown') {
+        if (!cmdHistory.length || historyIndex === cmdHistory.length) return;
+        e.preventDefault();
+        historyIndex = Math.min(cmdHistory.length, historyIndex + 1);
+        cmdInput.value = historyIndex === cmdHistory.length ? draft : cmdHistory[historyIndex];
       }
     });
   }

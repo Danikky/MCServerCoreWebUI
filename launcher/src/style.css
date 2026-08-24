@@ -1,0 +1,85 @@
+:root {
+  --bg: #0a0e14;
+  --surface: #12161f;
+  --border: rgba(255,255,255,0.08);
+  --text: #e6e9f0;
+  --text-muted: #6b7288;
+  --accent: #3dffaa;
+  --danger: #ff5c82;
+  --font: 'JetBrains Mono', 'Consolas', monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+}
+
+.app {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.brand {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 8px;
+  text-shadow: 0 0 12px rgba(61,255,170,0.4);
+}
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 11px; color: var(--text-muted); }
+.field input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+}
+.field input:focus { outline: none; border-color: var(--accent); }
+
+.btn {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 12px;
+  font-family: var(--font);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.btn-ghost { background: var(--surface); color: var(--text); }
+.btn-ghost:hover { border-color: var(--accent); }
+.btn-primary { background: rgba(61,255,170,0.14); color: var(--accent); border-color: rgba(61,255,170,0.3); font-weight: 600; }
+.btn-primary:hover:not(:disabled) { background: rgba(61,255,170,0.22); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.row { display: flex; justify-content: space-between; gap: 12px; }
+.key { color: var(--text-muted); }
+.val { color: var(--text); }
+.mono { font-family: var(--font); }
+
+.status {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  min-height: 14px;
+}
+.status.error { color: var(--danger); }

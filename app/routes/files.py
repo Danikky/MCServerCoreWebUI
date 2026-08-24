@@ -1,4 +1,7 @@
-from flask import Blueprint, current_app, render_template, request
+import os
+
+from flask import Blueprint, current_app, flash, render_template, request, send_file
+from werkzeug.utils import secure_filename
 
 from app import fs_utils
 from app.decorators import admin_required, with_server
@@ -41,7 +44,25 @@ def server_files_to(server_id, subpath):
         command = request.form.get("command")
         item = request.form.get("item")
         new_name = request.form.get("new_name")
-        if command not in [None, "null", ""] and item:
+
+        if command == "upload":
+            uploaded, skipped = [], []
+            for file_storage in request.files.getlist("upload_file"):
+                filename = secure_filename(file_storage.filename or "")
+                if not filename:
+                    continue
+                try:
+                    target = fs_utils.safe_join(server.path, fs_utils.under(server.path, subpath, filename))
+                except fs_utils.PathEscapeError:
+                    skipped.append(filename)
+                    continue
+                file_storage.save(target)
+                uploaded.append(filename)
+            if uploaded:
+                flash(f"Загружено: {', '.join(uploaded)}")
+            if skipped:
+                flash(f"Пропущено (недопустимый путь): {', '.join(skipped)}")
+        elif command not in [None, "null", ""] and item:
             item_path = fs_utils.under(server.path, subpath, item)
             try:
                 if command == "rename":
@@ -55,8 +76,29 @@ def server_files_to(server_id, subpath):
                     fs_utils.make(server.path, item_path, not is_file)
             except fs_utils.PathEscapeError:
                 return render_template("error.html", error="Путь недопустим"), 400
-            dir_list = _list_dir(server, subpath)
-            if dir_list is None:
-                return render_template("error.html", error="Папка не найдена или путь недопустим"), 400
+
+        dir_list = _list_dir(server, subpath)
+        if dir_list is None:
+            return render_template("error.html", error="Папка не найдена или путь недопустим"), 400
 
     return render_template("server_files.html", dir_list=dir_list, subpath=subpath, is_renaming=is_renaming)
+
+
+# Скачивание одного файла. Отдельный статический префикс ("download/...")
+# впереди <path:subpath> — Werkzeug сортирует правила так, что более
+# специфичное (со статическим сегментом) проверяется раньше жадного
+# "/<path:subpath>" выше, так что коллизии с обзором папки не будет, пока
+# внутри сервера не заведут папку/файл верхнего уровня буквально с именем
+# "download".
+@bp.route("/download/<path:subpath>", methods=["GET"])
+@admin_required
+@with_server
+def download_file(server_id, subpath):
+    server = current_app.server_registry.get(server_id)
+    try:
+        target = fs_utils.safe_join(server.path, fs_utils.under(server.path, subpath))
+    except fs_utils.PathEscapeError:
+        return render_template("error.html", error="Путь недопустим"), 400
+    if not os.path.isfile(target):
+        return render_template("error.html", error="Файл не найден"), 404
+    return send_file(target, as_attachment=True, download_name=os.path.basename(target))

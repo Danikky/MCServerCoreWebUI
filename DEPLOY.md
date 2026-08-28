@@ -149,7 +149,7 @@ sudo apt install -y nginx
 ```nginx
 server {
     listen 80;
-    server_name your-domain.com;
+    server_name admin.dan1kkystudio.ru;
 
     client_max_body_size 1024m;
 
@@ -174,19 +174,44 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-### 2.6 Домен и HTTPS
+### 2.6 Домены и HTTPS
 
-1. У регистратора/DNS-провайдера домена создай A-запись `your-domain.com → IP сервера`.
+Два домена под две разные вещи — не смешивать:
+
+- **`admin.dan1kkystudio.ru`** — веб-панель, обычный HTTP(S) через nginx
+  из шага выше.
+- **`play.dan1kkystudio.ru`** — подключение к самому Minecraft-серверу,
+  сырой TCP (плюс отдельно UDP для войсчата, см. §2.9) — nginx и HTTPS
+  тут вообще ни при чём, это не HTTP-трафик.
+
+**Панель (`admin.`):**
+
+1. A-запись `admin.dan1kkystudio.ru → IP сервера` у регистратора/DNS-провайдера.
 2. Дождись распространения (обычно от пары минут до пары часов).
 3. Получи сертификат через certbot:
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d your-domain.com
+sudo certbot --nginx -d admin.dan1kkystudio.ru
 ```
 
 Certbot сам допишет `listen 443 ssl`, сертификаты и редирект с 80 на 443
 в конфиг nginx, и настроит автопродление (проверить: `sudo certbot renew --dry-run`).
+
+**Игра (`play.`):**
+
+1. A-запись `play.dan1kkystudio.ru → IP машины, где реально слушает
+   игровой порт` — не обязательно та же машина, что и панель.
+2. Если игровой порт нестандартный (не `25565`, смотри `server-port` в
+   `server.properties` конкретного сервера в панели) — добавь ещё и
+   **SRV-запись**: `_minecraft._tcp.play.dan1kkystudio.ru` → приоритет/
+   вес/порт/хост. Тогда игрок всё равно вводит просто
+   `play.dan1kkystudio.ru`, без порта — Java-клиент сам делает SRV-lookup.
+   Без SRV пришлось бы диктовать `play.dan1kkystudio.ru:<порт>` руками, и
+   адрес ломался бы при каждой смене порта. SRV работает только для
+   **Java Edition** — Bedrock его не поддерживает.
+3. Если IP не статический (сервер за домашним интернетом, провайдер меняет
+   адрес) — нужен DDNS вместо обычной A-записи, иначе адрес протухнет.
 
 ### 2.7 Файрвол
 
@@ -202,7 +227,13 @@ sudo ufw enable
 
 Если игроки должны заходить на сам Minecraft-сервер снаружи — дополнительно
 открой его игровой порт (обычно `25565/tcp`, значение — из `server.properties`
-на сервере, ключ `server-port`).
+на сервере, ключ `server-port`), а если подключаешь войсчат — ещё и его UDP-
+порт (см. §2.9):
+
+```bash
+sudo ufw allow 25565/tcp     # игровой порт play.dan1kkystudio.ru
+sudo ufw allow 24454/udp     # Simple Voice Chat, если подключаешь
+```
 
 ### 2.8 Обновление после деплоя
 
@@ -212,6 +243,32 @@ git pull
 ./setup.sh                      # подтянет новые зависимости, если есть
 sudo systemctl restart mcservercore
 ```
+
+### 2.9 Голосовой чат (Simple Voice Chat)
+
+[Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat) —
+официально поддерживает Folia/Paper/Spigot (не только Fabric/Forge как
+мод). Идёт отдельным плагином + свой **UDP**-порт (по умолчанию `24454`) —
+голосовой трафик не имеет отношения ни к игровому TCP-порту, ни тем более
+к панели/nginx, это отдельный поток данных напрямую по UDP.
+
+1. Скачай `bukkit`-сборку (она одна работает и на Paper, и на Folia, и на
+   Spigot) под версию сервера — версии и билды:
+   https://modrinth.com/plugin/simple-voice-chat/versions?l=bukkit
+2. Положи `.jar` в `plugins/` нужного сервера через файловый менеджер
+   панели (`/servers/<id>/files/plugins`) — как обычный плагин.
+3. Перезапусти сервер (кнопка Restart на странице «Консоль» — можно и
+   через планировщик, если хочешь по расписанию). При первом старте
+   плагин сам создаст `plugins/voicechat/voicechat-server.properties`.
+4. Проверь/поправь `voice_chat_port` в этом конфиге и открой ровно этот
+   порт в файрволе (см. §2.7 — по умолчанию `24454/udp`).
+5. Игроку нужен клиентский мод/аддон Simple Voice Chat — ставится на его
+   стороне (тоже с Modrinth, под его лаунчер и версию), панели и сервера
+   это не касается.
+
+Несколько серверов с войсчатом одновременно — каждому свой UDP-порт (при
+конфликте плагин сам предложит свободный, либо пропиши явно в конфиге
+каждого сервера).
 
 ---
 
@@ -224,11 +281,11 @@ sudo systemctl restart mcservercore
 
 - Подключаться через kitty-киттен, который сам довозит terminfo на сервер:
   ```bash
-  kitten ssh mcserver@your-domain.com
+  kitten ssh mcserver@admin.dan1kkystudio.ru
   ```
 - Либо один раз скопировать terminfo вручную на сервер обычным `ssh`:
   ```bash
-  infocmp -x xterm-kitty | ssh mcserver@your-domain.com -- tic -x -o \~/.terminfo /dev/stdin
+  infocmp -x xterm-kitty | ssh mcserver@admin.dan1kkystudio.ru -- tic -x -o \~/.terminfo /dev/stdin
   ```
 
 После этого `ssh` (в т.ч. обычный, не kitty-киттен) будет нормально работать

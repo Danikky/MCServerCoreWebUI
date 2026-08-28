@@ -93,12 +93,16 @@ class ServerManager:
         if self.core:
             print(f"{self.core} обнаружено")
         else:
-            for i in os.listdir(self.path):
-                if i.lower().endswith((".sh", ".bat")):
-                    self.start_file = i
-                    print(f"Обнаружен файл запуска: {i}")
-                    self._log(f"Обнаружен файл запуска: {i}")
-                    break
+            # Только .sh — запускаем всегда через bash (см. arg ниже), .bat
+            # им в принципе не исполнить (это баг, а не кроссплатформенность:
+            # ветки для cmd/.bat здесь никогда не было). os.listdir() не
+            # гарантирует порядок — sorted() для детерминизма, если вдруг
+            # окажется несколько .sh-файлов сразу.
+            scripts = sorted(f for f in os.listdir(self.path) if f.lower().endswith(".sh"))
+            if scripts:
+                self.start_file = scripts[0]
+                print(f"Обнаружен файл запуска: {self.start_file}")
+                self._log(f"Обнаружен файл запуска: {self.start_file}")
 
         arg = ["java", "-Dsun.stdout.encoding=UTF-8", f"-Xmx{self.java_xmx}",
                f"-Xms{self.java_xms}", "-jar", self.core, "nogui"]

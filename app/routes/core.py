@@ -1,3 +1,5 @@
+import re
+
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 
 from app.decorators import admin_required, with_server
@@ -5,6 +7,11 @@ from app.extensions import db
 from app.models import Server
 
 bp = Blueprint("core", __name__, url_prefix="/servers/<int:server_id>/core")
+
+# Java принимает суффиксы k/m/g (регистронезависимо) у -Xmx/-Xms — не пускаем
+# на вход что попало, иначе java просто откажется стартовать с невнятной
+# ошибкой прямо в консоли сервера.
+_MEMORY_RE = re.compile(r"^\d+[mMgG]$")
 
 
 # Ядро сервера (.jar) — вся страница только для admin, как и файловый
@@ -64,6 +71,33 @@ def delete(server_id, filename):
     server = current_app.server_registry.get(server_id)
     server.delete_core_file(filename)
     flash(f"Удалено: {filename}")
+    return redirect(url_for("core.core_page", server_id=server_id))
+
+
+@bp.route("/memory", methods=["POST"])
+@admin_required
+@with_server
+def update_memory(server_id):
+    row = Server.query.get_or_404(server_id)
+    xmx = request.form.get("java_xmx", "").strip()
+    xms = request.form.get("java_xms", "").strip()
+    if not _MEMORY_RE.match(xmx) or not _MEMORY_RE.match(xms):
+        flash("Память — число + M или G, например 2G или 512M")
+        return redirect(url_for("core.core_page", server_id=server_id))
+
+    row.java_xmx = xmx
+    row.java_xms = xms
+    db.session.commit()
+
+    # ServerManager кэшируется в памяти на весь процесс (см.
+    # app/server_registry.py) и берёт java_xmx/java_xms из Server-строки
+    # только один раз при создании — без этого правки в БД не увидит уже
+    # созданный менеджер, пока панель не перезапустят.
+    server = current_app.server_registry.get(server_id)
+    server.java_xmx = xmx
+    server.java_xms = xms
+
+    flash("Память обновлена — применится при следующем запуске/рестарте сервера")
     return redirect(url_for("core.core_page", server_id=server_id))
 
 

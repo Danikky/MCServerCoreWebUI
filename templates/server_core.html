@@ -46,6 +46,41 @@
   <div class="card-mc" style="margin-top:16px">
     <div class="card-header-mc">
       <h3 class="card-title-mc">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Память Java (Xmx/Xms)
+      </h3>
+    </div>
+    {% if not core_files %}
+    <p style="font-size:11px;color:var(--warn, var(--text-muted));margin:0 0 14px">
+      ⚠ .jar не найден — сервер запускается через скрипт (см. ниже), а не напрямую java.
+      Скрипт обычно сам решает, сколько памяти выделить (см. его собственный конфиг) — эти
+      настройки в таком случае игнорируются.
+    </p>
+    {% endif %}
+    <form method="post" action="{{ url_for('core.update_memory', server_id=current_server.id) }}">
+      <div class="settings-grid" style="margin-bottom:14px">
+        <div class="setting-item">
+          <div class="setting-key">Xmx (максимум)</div>
+          <input type="text" name="java_xmx" class="form-control" placeholder="4G" value="{{ row.java_xmx }}" pattern="\d+[mMgG]" required>
+        </div>
+        <div class="setting-item">
+          <div class="setting-key">Xms (стартовый)</div>
+          <input type="text" name="java_xms" class="form-control" placeholder="2G" value="{{ row.java_xms }}" pattern="\d+[mMgG]" required>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--text-muted);margin:0 0 14px">
+        Число + <code>M</code> или <code>G</code> (например <code>2G</code>, <code>512M</code>).
+        Xms == Xmx часто советуют для Minecraft — так JVM не тратит время на увеличение кучи
+        во время прогрева/генерации мира. Меняется только для нового старта — на уже
+        запущенный процесс не действует, нужен рестарт.
+      </p>
+      <button class="btn-mc btn-primary-mc">Сохранить</button>
+    </form>
+  </div>
+
+  <div class="card-mc" style="margin-top:16px">
+    <div class="card-header-mc">
+      <h3 class="card-title-mc">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
         Публичная информация
       </h3>

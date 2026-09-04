@@ -183,6 +183,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // пропущены (SocketIO их никуда не буферизует) — просто перезаливаем
       // всю историю с нуля вместо того, чтобы жить с дырой в логе.
       consoleDiv.innerHTML = '';
+      loadingOlder = false;
       loadHistory();
     }
     wasConnected = true;
@@ -193,8 +194,24 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   socket.io.on('reconnect_attempt', function() { setWsStatus('reconnecting'); });
 
-  function colorize(text) {
+  // Окно ~80 строк в DOM одновременно (не вся история разом, как раньше —
+  // на долгоживущем сервере это тысячи узлов и заметные тормоза/память) —
+  // новые строки выталкивают старые сверху, а прокрутка к началу
+  // подгружает более старые строки с бэка (см. get_console_history —
+  // пагинация по before_id) и отпускает лишнее снизу.
+  const WINDOW_SIZE = 80;
+  const HISTORY_URL = '{{ url_for("console.get_console_history", server_id=current_server.id) }}';
+
+  let hasOlder = false;
+  let loadingOlder = false;
+
+  function nearBottom() {
+    return consoleDiv.scrollHeight - consoleDiv.scrollTop - consoleDiv.clientHeight < 40;
+  }
+
+  function makeLineEl(id, text) {
     const el = document.createElement('div');
+    if (id != null) el.dataset.lineId = id;
     el.style.cssText = 'font-family:var(--font-mono);font-size:12px;line-height:1.7';
     const lc = text.toLowerCase();
     if (lc.includes('warn')) el.className = 'console-line-warn';
@@ -206,21 +223,62 @@ document.addEventListener('DOMContentLoaded', function() {
     return el;
   }
 
+  function trimTop(maxSize) {
+    while (consoleDiv.children.length > maxSize) consoleDiv.removeChild(consoleDiv.firstChild);
+  }
+  function trimBottom(maxSize) {
+    while (consoleDiv.children.length > maxSize) consoleDiv.removeChild(consoleDiv.lastChild);
+  }
+
   socket.on('console_update', function(data) {
-    consoleDiv.appendChild(colorize(data.line));
-    consoleDiv.scrollTop = consoleDiv.scrollHeight;
+    const stick = nearBottom();
+    consoleDiv.appendChild(makeLineEl(data.id, data.line));
+    if (consoleDiv.children.length > WINDOW_SIZE) {
+      // Обрезанное всё ещё лежит в БД — можно домотать обратно скроллом
+      // вверх, поэтому просто помечаем, что «выше» есть что подгрузить.
+      const prevHeight = consoleDiv.scrollHeight;
+      trimTop(WINDOW_SIZE);
+      if (!stick) {
+        // читаешь историю выше — не дёргаем твою позицию обрезкой сверху
+        consoleDiv.scrollTop -= (prevHeight - consoleDiv.scrollHeight);
+      }
+      hasOlder = true;
+    }
+    if (stick) consoleDiv.scrollTop = consoleDiv.scrollHeight;
   });
 
   function loadHistory() {
-    fetch('{{ url_for("console.get_console_history", server_id=current_server.id) }}')
+    fetch(`${HISTORY_URL}?limit=${WINDOW_SIZE}`)
       .then(r => r.json())
       .then(data => {
-        data.history.forEach(line => consoleDiv.appendChild(colorize(line)));
+        data.lines.forEach(l => consoleDiv.appendChild(makeLineEl(l.id, l.line)));
+        hasOlder = data.has_more;
         consoleDiv.scrollTop = consoleDiv.scrollHeight;
         consoleDiv.dataset.loadedOnce = '1';
       });
   }
   loadHistory();
+
+  function loadOlder() {
+    const oldestEl = consoleDiv.firstElementChild;
+    if (!oldestEl || !hasOlder || loadingOlder) return;
+    const oldestId = oldestEl.dataset.lineId;
+    if (!oldestId) return; // самая старая строка в DOM — «живая», без id её не с чем сопоставить дальше
+    loadingOlder = true;
+    fetch(`${HISTORY_URL}?before_id=${oldestId}&limit=${WINDOW_SIZE}`)
+      .then(r => r.json())
+      .then(data => {
+        const prevHeight = consoleDiv.scrollHeight;
+        data.lines.slice().reverse().forEach(l => consoleDiv.insertBefore(makeLineEl(l.id, l.line), consoleDiv.firstChild));
+        consoleDiv.scrollTop += (consoleDiv.scrollHeight - prevHeight); // не даём вставке сверху дёрнуть экран
+        hasOlder = data.has_more;
+        trimBottom(WINDOW_SIZE * 2); // домотали вверх — самое нижнее (дальше всего от текущего вида) можно отпустить
+      })
+      .finally(() => { loadingOlder = false; });
+  }
+  consoleDiv.addEventListener('scroll', function() {
+    if (consoleDiv.scrollTop < 40) loadOlder();
+  });
 
   socket.on('connect_error', err => console.error('WS error:', err));
 

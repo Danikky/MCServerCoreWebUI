@@ -71,11 +71,17 @@ class ServerManager:
 
     # ---- лог консоли (БД) --------------------------------------------------
 
-    def _log(self, line: str):
+    def _log(self, line: str) -> int:
+        """Возвращает id созданной строки — нужен, чтобы прокинуть его вместе
+        со строкой в live-обновление по сокету (см. get_console_output),
+        иначе фронту нечем сопоставлять живые строки с пагинацией истории
+        (/servers/<id>/console/history?before_id=...)."""
         print(f"[{self.slug}] {line}")
         with self.app.app_context():
-            db.session.add(ConsoleLine(server_id=self.id, line=line))
+            entry = ConsoleLine(server_id=self.id, line=line)
+            db.session.add(entry)
             db.session.commit()
+            return entry.id
 
     # ---- управление процессом -----------------------------------------------
 
@@ -134,10 +140,10 @@ class ServerManager:
             if not line and self.process.poll() is not None:
                 break
             if line:
-                self._log(line)
+                line_id = self._log(line)
                 self.console_event_check(line)
                 socketio.start_background_task(
-                    socketio.emit, 'console_update', {'line': line.strip()},
+                    socketio.emit, 'console_update', {'id': line_id, 'line': line.strip()},
                     namespace='/server', room=f"server-{self.id}",
                 )
 

@@ -51,5 +51,26 @@ def server_console(server_id):
 @login_required
 @with_server
 def get_console_history(server_id):
-    lines = ConsoleLine.query.filter_by(server_id=server_id).order_by(ConsoleLine.id).all()
-    return jsonify({'history': [l.line for l in lines]})
+    """Пагинированная история — раньше отдавала всю таблицу разом (растёт
+    без ограничения за время жизни сервера, см. REVIEW.md), теперь только
+    страницу вокруг before_id. Без before_id — последние limit строк
+    (обычный первый заход на страницу); с ним — limit строк старше него
+    (подгрузка при прокрутке вверх, см. control_panel.html). Всегда отдаём
+    в хронологическом порядке (старые → новые), чтобы фронт мог просто
+    рендерить/приклеивать без пересортировки."""
+    limit = min(request.args.get("limit", 80, type=int) or 80, 500)
+    before_id = request.args.get("before_id", type=int)
+
+    query = ConsoleLine.query.filter_by(server_id=server_id)
+    if before_id is not None:
+        query = query.filter(ConsoleLine.id < before_id)
+    # limit+1 — узнать, есть ли ещё более старые строки, без отдельного COUNT(*)
+    rows = query.order_by(ConsoleLine.id.desc()).limit(limit + 1).all()
+    has_more = len(rows) > limit
+    rows = rows[:limit]
+    rows.reverse()
+
+    return jsonify({
+        'lines': [{'id': r.id, 'line': r.line} for r in rows],
+        'has_more': has_more,
+    })

@@ -33,6 +33,12 @@
       {% endif %}
 
       <div style="display:flex;flex-direction:column;gap:8px;font-family:var(--font-mono);font-size:13px">
+        {% if s.days_running is not none %}
+        <div class="flex-between">
+          <span style="color:var(--text-muted)">Работает</span>
+          <span style="color:var(--text-secondary)">{{ s.days_running }} {{ s.days_word }}</span>
+        </div>
+        {% endif %}
         {% if s.version %}
         <div class="flex-between">
           <span style="color:var(--text-muted)">Версия</span>

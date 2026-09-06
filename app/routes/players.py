@@ -3,8 +3,24 @@ import re
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 
 from app.decorators import admin_write_required, with_server
+from app.models import PlayerEvent
 
 bp = Blueprint("players", __name__, url_prefix="/servers/<int:server_id>")
+
+# Последние N событий входа/выхода — история переживает рестарт/офлайн
+# сервера (см. ServerManager._log_player_event), в отличие от online-списка.
+# Без пагинации — этого достаточно, чтобы увидеть "кто заходил недавно",
+# а не растить ещё один бесконечно листаемый лог рядом с консольным.
+PLAYER_HISTORY_LIMIT = 50
+
+
+def _get_player_history(server_id):
+    return (
+        PlayerEvent.query.filter_by(server_id=server_id)
+        .order_by(PlayerEvent.id.desc())
+        .limit(PLAYER_HISTORY_LIMIT)
+        .all()
+    )
 
 # Ровно те значения, что реально шлют кнопки в server_players.html. Раньше
 # command/username из формы уходили в консоль вообще без проверки — POST
@@ -57,13 +73,15 @@ def server_players(server_id):
         # и рискует продублировать команду.
         return redirect(url_for("players.server_players", server_id=server_id))
 
+    player_history = _get_player_history(server_id)
+
     if server.is_server_running():
         online = [len(server.online), server.get_properties_value("max-players")]
         players_data = server.update_players_data()
-        return render_template("server_players.html", players_data=players_data, online=online)
+        return render_template("server_players.html", players_data=players_data, online=online, player_history=player_history)
 
     online = [0, server.get_properties_value("max-players")]
     if server.core:
         players_data = server.update_players_data()
-        return render_template("server_players.html", players_data=players_data, online=online)
+        return render_template("server_players.html", players_data=players_data, online=online, player_history=player_history)
     return render_template("error.html", error="Сервер ещё ни разу не запускался"), 404

@@ -129,15 +129,24 @@
         <div class="card-header-mc">
           <h3 class="card-title-mc">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            Быстрые команды
+            История команд
           </h3>
+          <span class="badge-mc badge-gray">{{ cmd_history|length }}</span>
         </div>
-        <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto">
           {% if is_server_run and current_user.is_admin %}
-          <form method="post"><button name="console_input" value="list" class="btn-mc btn-ghost-mc w-full" style="justify-content:flex-start">list</button></form>
-          <form method="post"><button name="console_input" value="save-all" class="btn-mc btn-ghost-mc w-full" style="justify-content:flex-start">save-all</button></form>
-          <form method="post"><button name="console_input" value="time set day" class="btn-mc btn-ghost-mc w-full" style="justify-content:flex-start">time set day</button></form>
-          <form method="post"><button name="console_input" value="weather clear" class="btn-mc btn-ghost-mc w-full" style="justify-content:flex-start">weather clear</button></form>
+            {% if cmd_history %}
+              {% for h in cmd_history %}
+              <form method="post" title="{{ h.username or '?' }}">
+                <button name="console_input" value="{{ h.command }}" class="btn-mc btn-ghost-mc w-full" style="justify-content:space-between;gap:8px">
+                  <span style="font-family:var(--font-mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ h.command }}</span>
+                  <span style="color:var(--text-muted);font-size:10px;flex-shrink:0">{{ h.created_at.strftime('%H:%M') }}</span>
+                </button>
+              </form>
+              {% endfor %}
+            {% else %}
+              <div style="color:var(--text-muted);font-size:12px;font-family:var(--font-mono);text-align:center;padding:10px 0">Команд ещё не было</div>
+            {% endif %}
           {% elif not is_server_run %}
           <div style="color:var(--text-muted);font-size:12px;font-family:var(--font-mono);text-align:center;padding:10px 0">Запустите сервер</div>
           {% else %}

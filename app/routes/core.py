@@ -1,3 +1,4 @@
+import datetime as dt
 import re
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
@@ -112,6 +113,21 @@ def update_public(server_id):
     row.public_ip = request.form.get("public_ip", "").strip() or None
     row.public_description = request.form.get("public_description", "").strip() or None
     row.public_contact = request.form.get("public_contact", "").strip() or None
+
+    # Обычно пишется само при первом реальном старте (см.
+    # ServerManager._record_first_start), но если сервер уже работал ДО
+    # этого обновления панели — взять ту дату неоткуда автоматически,
+    # только руками. Пустое поле — сброс обратно на "ещё не запускался".
+    raw_date = request.form.get("first_started_at", "").strip()
+    if not raw_date:
+        row.first_started_at = None
+    else:
+        try:
+            row.first_started_at = dt.datetime.strptime(raw_date, "%Y-%m-%d")
+        except ValueError:
+            flash("Дата первого запуска — некорректный формат, не сохранена")
+            return redirect(url_for("core.core_page", server_id=server_id))
+
     db.session.commit()
     flash("Публичная информация обновлена")
     return redirect(url_for("core.core_page", server_id=server_id))

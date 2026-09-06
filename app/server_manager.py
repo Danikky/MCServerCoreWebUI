@@ -25,7 +25,7 @@ from werkzeug.utils import secure_filename
 
 from app import fs_utils
 from app.extensions import db, socketio
-from app.models import ConsoleLine
+from app.models import ConsoleLine, PlayerEvent, Server
 
 
 class ServerManager:
@@ -170,6 +170,7 @@ class ServerManager:
         if self._DONE_RE.search(line):
             self.ready = True
             self._restarting = False
+            self._record_first_start()
             return
         join_match = self._JOIN_RE.search(line)
         left_match = self._LEFT_RE.search(line)
@@ -178,11 +179,35 @@ class ServerManager:
             with self.online_lock:
                 if name not in self.online:
                     self.online.append(name)
+            self._log_player_event(name, "join")
         elif left_match:
             name = left_match.group(1)
             with self.online_lock:
                 if name in self.online:
                     self.online.remove(name)
+            self._log_player_event(name, "leave")
+
+    def _log_player_event(self, username: str, event_type: str) -> None:
+        """Персистентная история входов/выходов — в отличие от self.online
+        (только текущее состояние в памяти, сбрасывается при рестарте/
+        падении), переживает и рестарт сервера, и офлайн-полностью. Видна
+        на странице «Игроки» вне зависимости от того, жив ли сейчас
+        процесс — см. app/routes/players.py."""
+        with self.app.app_context():
+            db.session.add(PlayerEvent(server_id=self.id, username=username, event_type=event_type))
+            db.session.commit()
+
+    def _record_first_start(self) -> None:
+        """Пишет Server.first_started_at один раз — при самом первом
+        успешном старте за всю историю сервера (первый матч "Done (", см.
+        _DONE_RE). Дальше не трогается: рестарты/переустановки ядра не
+        сдвигают эту дату — это "возраст" сервера для /status, а не
+        текущий аптайм сессии."""
+        with self.app.app_context():
+            row = db.session.get(Server, self.id)
+            if row is not None and row.first_started_at is None:
+                row.first_started_at = dt.datetime.utcnow()
+                db.session.commit()
 
     def is_server_running(self) -> bool:
         # Проверяем именно наш управляемый субпроцесс, а не любой java-процесс

@@ -10,41 +10,74 @@
 
   <div class="grid-2" style="gap:16px;align-items:start">
 
-    <!-- Online now -->
-    <div class="card-mc">
-      <div class="card-header-mc">
-        <h3 class="card-title-mc">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          Сейчас онлайн
-        </h3>
-        <span class="badge-mc badge-green">{{ online[0] }}</span>
-      </div>
-      {% if players_data["online"] %}
-        {% for el in players_data["online"] %}
-        <form method="post" style="margin-bottom:8px">
-          <input type="hidden" name="username" value="{{ el }}">
-          <div class="player-card">
-            <div class="player-avatar">
-              <img src="https://crafatar.com/avatars/{{ el }}?size=38&overlay" alt="{{ el }}" onerror="this.style.display='none'">
-            </div>
-            <span class="player-name">{{ el }}</span>
-            {% if current_user.is_admin %}
-            <div class="player-actions">
-              {% if el in players_data["oplist"] %}
-                <button class="btn-mc btn-warn-mc" name="command" value="deop" style="padding:5px 10px;font-size:11px">deop</button>
-              {% else %}
-                <button class="btn-mc btn-info-mc" name="command" value="op" style="padding:5px 10px;font-size:11px">op</button>
+    <div style="display:flex;flex-direction:column;gap:16px">
+
+      <!-- Online now -->
+      <div class="card-mc">
+        <div class="card-header-mc">
+          <h3 class="card-title-mc">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Сейчас онлайн
+          </h3>
+          <span class="badge-mc badge-green">{{ online[0] }}</span>
+        </div>
+        {% if players_data["online"] %}
+          {% for el in players_data["online"] %}
+          <form method="post" style="margin-bottom:8px">
+            <input type="hidden" name="username" value="{{ el }}">
+            <div class="player-card">
+              <div class="player-avatar">
+                <img src="https://crafatar.com/avatars/{{ el }}?size=38&overlay" alt="{{ el }}" onerror="this.style.display='none'">
+              </div>
+              <span class="player-name">{{ el }}</span>
+              {% if current_user.is_admin %}
+              <div class="player-actions">
+                {% if el in players_data["oplist"] %}
+                  <button class="btn-mc btn-warn-mc" name="command" value="deop" style="padding:5px 10px;font-size:11px">deop</button>
+                {% else %}
+                  <button class="btn-mc btn-info-mc" name="command" value="op" style="padding:5px 10px;font-size:11px">op</button>
+                {% endif %}
+                <button class="btn-mc btn-warn-mc" name="command" value="kick" style="padding:5px 10px;font-size:11px">kick</button>
+                <button class="btn-mc btn-danger-mc" name="command" value="ban" style="padding:5px 10px;font-size:11px">ban</button>
+              </div>
               {% endif %}
-              <button class="btn-mc btn-warn-mc" name="command" value="kick" style="padding:5px 10px;font-size:11px">kick</button>
-              <button class="btn-mc btn-danger-mc" name="command" value="ban" style="padding:5px 10px;font-size:11px">ban</button>
             </div>
-            {% endif %}
+          </form>
+          {% endfor %}
+        {% else %}
+          <div style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-mono);font-size:13px">Никого нет онлайн</div>
+        {% endif %}
+      </div>
+
+      <!-- История входов/выходов — переживает рестарт/офлайн сервера, в
+           отличие от списка выше (см. PlayerEvent в app/models.py) -->
+      <div class="card-mc">
+        <div class="card-header-mc">
+          <h3 class="card-title-mc">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            История входов/выходов
+          </h3>
+          <span class="badge-mc badge-gray">{{ player_history|length }}</span>
+        </div>
+        {% if player_history %}
+          <div style="display:flex;flex-direction:column;max-height:360px;overflow-y:auto">
+            {% for ev in player_history %}
+            <div class="flex-between" style="padding:7px 0;border-bottom:1px solid var(--glass-border);font-family:var(--font-mono);font-size:12px">
+              <span style="color:var(--text-primary)">{{ ev.username }}</span>
+              {% if ev.event_type == 'join' %}
+                <span class="badge-mc badge-green">вошёл</span>
+              {% else %}
+                <span class="badge-mc badge-gray">вышел</span>
+              {% endif %}
+              <span style="color:var(--text-muted)">{{ ev.created_at.strftime('%d.%m %H:%M') }}</span>
+            </div>
+            {% endfor %}
           </div>
-        </form>
-        {% endfor %}
-      {% else %}
-        <div style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-mono);font-size:13px">Никого нет онлайн</div>
-      {% endif %}
+        {% else %}
+          <div style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-mono);font-size:13px">Пока никто не заходил</div>
+        {% endif %}
+      </div>
+
     </div>
 
     <div style="display:flex;flex-direction:column;gap:16px">

@@ -20,7 +20,9 @@ _MEMORY_RE = re.compile(r"^\d+[mMgG]$")
 # процесс. Два способа завести ядро: обычная загрузка файла и скачивание по
 # прямой ссылке на сборку (Paper/Purpur/Fabric/...). Плюс здесь же — публичная
 # информация для страницы /status (название/версия/IP игроки видят ровно то,
-# что тут вписано, никакого автоопределения).
+# что тут вписано, никакого автоопределения). Переключатель «Ванилла /
+# Сборка модов» вместо .jar показывает установку серверной сборки (.zip) по
+# ссылке — см. ServerManager.install_modpack.
 @bp.route("", methods=["GET"])
 @admin_required
 @with_server
@@ -62,6 +64,42 @@ def fetch(server_id):
         flash(f"Скачано: {name}")
     except Exception as e:
         flash(f"Не удалось скачать: {e}")
+    return redirect(url_for("core.core_page", server_id=server_id))
+
+
+@bp.route("/mode", methods=["POST"])
+@admin_required
+@with_server
+def update_mode(server_id):
+    # Дёргается fetch'ем из переключателя «Ванилла / Сборка модов» — сам
+    # переключатель меняет вид страницы сразу в JS, тут только запоминаем
+    # выбор, чтобы он пережил перезагрузку.
+    row = Server.query.get_or_404(server_id)
+    row.is_modpack = request.form.get("is_modpack") == "on"
+    db.session.commit()
+    return "", 204
+
+
+@bp.route("/modpack", methods=["POST"])
+@admin_required
+@with_server
+def install_modpack(server_id):
+    server = current_app.server_registry.get(server_id)
+    row = Server.query.get_or_404(server_id)
+    url = request.form.get("url", "").strip()
+    if not url:
+        flash("Укажи ссылку на сборку")
+        return redirect(url_for("core.core_page", server_id=server_id))
+    row.modpack_url = url
+    db.session.commit()
+    try:
+        count = server.install_modpack(url, clean_mods=request.form.get("clean_mods") == "on")
+    except Exception as e:
+        flash(f"Не удалось установить сборку: {e}")
+        return redirect(url_for("core.core_page", server_id=server_id))
+    jars = server.list_core_files()
+    launch = f"запустится {jars[0]}" if jars else "запустится через .sh-скрипт (если он есть в сборке)"
+    flash(f"Сборка установлена: {count} файлов — {launch}")
     return redirect(url_for("core.core_page", server_id=server_id))
 
 

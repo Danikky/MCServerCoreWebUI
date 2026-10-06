@@ -65,6 +65,13 @@ class Server(db.Model):
     # простоять незапущенным сколько угодно после этого).
     first_started_at = db.Column(db.DateTime, nullable=True)
 
+    # Переключатель «Ванилла / Сборка модов» на странице «Ядро» — только
+    # какой интерфейс показывать (загрузка .jar или установка сборки по
+    # ссылке), на запуск сервера не влияет. modpack_url — последняя ссылка,
+    # с которой ставили сборку, чтобы не вставлять её заново при обновлении.
+    is_modpack = db.Column(db.Boolean, nullable=False, default=False)
+    modpack_url = db.Column(db.String(500), nullable=True)
+
 
 class ConsoleLine(db.Model):
     __tablename__ = "console_output"
@@ -173,6 +180,8 @@ def ensure_schema_migrations() -> None:
     existing = {col["name"] for col in inspector.get_columns("servers")}
     wanted = {
         "first_started_at": "DATETIME",
+        "is_modpack": "BOOLEAN NOT NULL DEFAULT 0",
+        "modpack_url": "VARCHAR(500)",
     }
     missing = {name: ddl for name, ddl in wanted.items() if name not in existing}
     if not missing:

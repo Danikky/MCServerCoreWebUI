@@ -8,47 +8,7 @@
     <span>{{ current_server.name }}</span>
   </div>
 
-  <div class="card-mc" style="margin-bottom:16px">
-    <form id="core-mode-form" method="post" action="{{ url_for('core.update_mode', server_id=current_server.id) }}"
-          style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-      <div>
-        <div class="setting-key">Тип сервера</div>
-        <div id="core-mode-label" style="font-size:18px;font-weight:600">{{ 'Сборка модов' if row.is_modpack else 'Ванилла' }}</div>
-      </div>
-      <label class="switch-mc" style="font-size:13px;color:var(--text-secondary)">
-        Ванилла
-        <input type="checkbox" name="is_modpack" id="core-mode-switch" {% if row.is_modpack %}checked{% endif %}>
-        <span class="switch-track"><span class="switch-thumb"></span></span>
-        Сборка модов
-      </label>
-    </form>
-  </div>
-
-  <div class="card-mc" id="modpack-section" style="margin-bottom:16px{% if not row.is_modpack %};display:none{% endif %}">
-    <div class="card-header-mc">
-      <h3 class="card-title-mc">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-        Сборка модов
-      </h3>
-    </div>
-    <form method="post" action="{{ url_for('core.install_modpack', server_id=current_server.id) }}" style="display:flex;flex-direction:column;gap:10px"
-          onsubmit="return confirm('Установить сборку? Файлы из архива перезапишут одноимённые файлы сервера.')">
-      <input type="url" name="url" class="form-control" placeholder="https://.../MyPack-Server-1.0.zip" value="{{ row.modpack_url or '' }}" required>
-      <label class="switch-mc" style="font-size:13px;color:var(--text-secondary)">
-        <input type="checkbox" name="clean_mods" checked>
-        <span class="switch-track"><span class="switch-thumb"></span></span>
-        Удалить старую папку mods/ перед установкой
-      </label>
-      <button class="btn-mc btn-primary-mc w-full" style="justify-content:center">Установить сборку</button>
-    </form>
-    <p style="font-size:11px;color:var(--text-muted);margin:10px 0 0">
-      Прямая ссылка на серверный .zip-пак (Server Pack с CurseForge и т.п.). Архив распаковывается в
-      папку сервера, мир и бекапы не трогаются. Сервер должен быть остановлен — сделай бекап перед
-      обновлением сборки. .mrpack (Modrinth) не поддерживается.
-    </p>
-  </div>
-
-  <div class="grid-2" id="vanilla-section" style="gap:16px;align-items:start{% if row.is_modpack %};display:none{% endif %}">
+  <div class="grid-2" style="gap:16px;align-items:start">
 
     <div class="card-mc">
       <div class="card-header-mc">
@@ -159,6 +119,22 @@
         <label class="form-label-mc">Описание</label>
         <textarea name="public_description" class="form-control" rows="3" placeholder="Пара слов о сервере — режим, правила, что тут особенного">{{ row.public_description or '' }}</textarea>
       </div>
+      <div class="form-group-mc">
+        <label class="form-label-mc">Тип сервера: <span id="modded-label" style="color:var(--text-primary)">{{ 'Сборка модов' if row.public_modded else 'Ванилла' }}</span></label>
+        <label class="switch-mc" style="font-size:13px;color:var(--text-secondary)">
+          Ванилла
+          <input type="checkbox" name="public_modded" id="modded-switch" {% if row.public_modded %}checked{% endif %}>
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+          Сборка модов
+        </label>
+      </div>
+      <div class="form-group-mc" id="modpack-url-group" {% if not row.public_modded %}style="display:none"{% endif %}>
+        <label class="form-label-mc">Ссылка на сборку</label>
+        <input type="url" name="public_modpack_url" class="form-control" placeholder="https://.../MyPack-1.0.zip" value="{{ row.public_modpack_url or '' }}">
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px">
+          Прямая ссылка на скачивание клиентской сборки (или страница на CurseForge/Modrinth) — на странице статуса появится кнопка «Скачать сборку».
+        </div>
+      </div>
       <label class="switch-mc" style="font-size:13px;color:var(--text-secondary);margin-bottom:14px">
         <input type="checkbox" name="public_visible" {% if row.public_visible %}checked{% endif %}>
         <span class="switch-track"><span class="switch-thumb"></span></span>
@@ -201,30 +177,13 @@
 </div>
 
 <script>
-  // Переключатель «Ванилла / Сборка модов»: вид меняется сразу, выбор
-  // сохраняется фоном (POST /core/mode). Не сохранилось — откатываем.
+  // «Ванилла / Сборка модов»: надпись и поле ссылки меняются сразу,
+  // сохраняется вместе с остальной публичной информацией.
   (function() {
-    const form = document.getElementById('core-mode-form');
-    const sw = document.getElementById('core-mode-switch');
-    const label = document.getElementById('core-mode-label');
-    const vanilla = document.getElementById('vanilla-section');
-    const modpack = document.getElementById('modpack-section');
-
-    function apply(isModpack) {
-      label.textContent = isModpack ? 'Сборка модов' : 'Ванилла';
-      vanilla.style.display = isModpack ? 'none' : '';
-      modpack.style.display = isModpack ? '' : 'none';
-    }
-
+    const sw = document.getElementById('modded-switch');
     sw.addEventListener('change', function() {
-      apply(sw.checked);
-      fetch(form.action, { method: 'POST', body: new FormData(form) }).then(function(r) {
-        if (!r.ok) throw new Error(r.status);
-      }).catch(function() {
-        sw.checked = !sw.checked;
-        apply(sw.checked);
-        alert('Не удалось сохранить тип сервера');
-      });
+      document.getElementById('modded-label').textContent = sw.checked ? 'Сборка модов' : 'Ванилла';
+      document.getElementById('modpack-url-group').style.display = sw.checked ? '' : 'none';
     });
   })();
 </script>

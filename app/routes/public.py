@@ -45,6 +45,11 @@ def status_page():
             "ip": row.public_ip,
             "description": row.public_description,
             "contact": row.public_contact,
+            "modded": row.public_modded,
+            # Повторная проверка схемы (уже проверяется при сохранении) — это
+            # href на публичной странице, javascript:-ссылка сюда попасть не должна.
+            "modpack_url": row.public_modpack_url
+                if row.public_modded and (row.public_modpack_url or "").startswith(("http://", "https://")) else None,
             "status": manager.status,
             "online": len(online_players),
             "online_players": online_players,

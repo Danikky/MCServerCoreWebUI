@@ -20,7 +20,6 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-import zipfile
 
 from werkzeug.utils import secure_filename
 
@@ -42,9 +41,6 @@ class ServerManager:
     _DONE_RE = re.compile(r"Done \(")
 
     MAX_CORE_BYTES = 1024 * 1024 * 1024  # 1 GB — щедро, но не безгранично
-    # Лимит на суммарный размер распакованной сборки — защита от zip-бомбы
-    # (сам архив ограничен MAX_CORE_BYTES при скачивании).
-    MAX_MODPACK_UNPACKED_BYTES = 8 * 1024 * 1024 * 1024
 
     def __init__(self, app, server_row):
         self.app = app  # нужен для app_context() при обращениях к БД из фонового потока
@@ -283,13 +279,6 @@ class ServerManager:
         os.makedirs(self.path, exist_ok=True)
         target = fs_utils.safe_join(self.path, os.path.join(self.path, name))
         tmp_target = target + ".part"
-        self._download(url, tmp_target)
-        os.replace(tmp_target, target)
-        return name
-
-    def _download(self, url: str, target: str) -> None:
-        """Потоково качает url в target с лимитом MAX_CORE_BYTES. При ошибке
-        недокачанный файл удаляется. Схему (http/https) проверяет вызывающий."""
         req = urllib.request.Request(url, headers={"User-Agent": "MCServerCore/1.0"})
         try:
             with urllib.request.urlopen(req, timeout=30) as resp:
@@ -297,7 +286,7 @@ class ServerManager:
                 if content_length and int(content_length) > self.MAX_CORE_BYTES:
                     raise ValueError("Файл слишком большой (>1 GB)")
                 written = 0
-                with open(target, "wb") as f:
+                with open(tmp_target, "wb") as f:
                     while True:
                         chunk = resp.read(256 * 1024)
                         if not chunk:
@@ -307,81 +296,11 @@ class ServerManager:
                             raise ValueError("Файл слишком большой (>1 GB)")
                         f.write(chunk)
         except (urllib.error.URLError, TimeoutError, ValueError):
-            if os.path.exists(target):
-                os.remove(target)
+            if os.path.exists(tmp_target):
+                os.remove(tmp_target)
             raise
-
-    # ---- сборка модов (серверный .zip-пак) -----------------------------------
-
-    def install_modpack(self, url: str, clean_mods: bool = True) -> int:
-        """
-        Качает серверную сборку (.zip — «Server Pack» с CurseForge и т.п.:
-        mods/, config/, скрипт запуска/ядро) и распаковывает её поверх папки
-        сервера. Возвращает число распакованных файлов. Мир, бекапы и прочие
-        файлы, которых нет в архиве, не трогаются; с clean_mods=True старая
-        папка mods/ удаляется перед распаковкой, если в архиве есть своя —
-        иначе при обновлении сборки остаются моды старых версий и сервер
-        падает на дубликатах. Тот же уровень доверия к ссылке, что и у
-        fetch_core_from_url (admin-only, без защиты от SSRF).
-        """
-        parsed = urllib.parse.urlparse(url)
-        if parsed.scheme not in ("http", "https"):
-            raise ValueError("Разрешены только http/https ссылки")
-        if self.is_server_running():
-            raise ValueError("Сначала останови сервер")
-        os.makedirs(self.path, exist_ok=True)
-        tmp_zip = os.path.join(self.path, ".modpack-download.part")
-        self._download(url, tmp_zip)
-        try:
-            if not zipfile.is_zipfile(tmp_zip):
-                raise ValueError("По ссылке не .zip-архив — нужна серверная сборка (Server Pack)")
-            with zipfile.ZipFile(tmp_zip) as zf:
-                return self._extract_modpack(zf, clean_mods)
-        finally:
-            if os.path.exists(tmp_zip):
-                os.remove(tmp_zip)
-
-    def _extract_modpack(self, zf: zipfile.ZipFile, clean_mods: bool) -> int:
-        names = zf.namelist()
-        if "modrinth.index.json" in names:
-            # .mrpack — тоже zip, но внутри не файлы сервера, а манифест со
-            # ссылками на моды; распаковать его как есть — получить мусор.
-            raise ValueError(".mrpack (Modrinth) не поддерживается — нужен серверный .zip-пак")
-
-        members = [i for i in zf.infolist() if not i.is_dir() and not i.filename.startswith("__MACOSX/")]
-        if not members:
-            raise ValueError("Архив пустой")
-        if sum(i.file_size for i in members) > self.MAX_MODPACK_UNPACKED_BYTES:
-            raise ValueError("Распакованная сборка слишком большая (>8 GB)")
-
-        # Многие паки завёрнуты в одну папку верхнего уровня
-        # ("MyPack-Server-1.2/mods/...") — снимаем её, чтобы mods/ и ядро
-        # оказались прямо в папке сервера, где их ищет start_server().
-        prefix = ""
-        tops = {i.filename.split("/", 1)[0] for i in members}
-        if len(tops) == 1 and all("/" in i.filename for i in members):
-            prefix = tops.pop() + "/"
-
-        # Сначала проверяем ВСЕ пути (zip-slip: "../", абсолютные пути), и
-        # только потом пишем — чтобы битый архив не оставил полураспакованную
-        # сборку. backups/ панели архиву не перезаписать.
-        plan = []
-        for info in members:
-            rel = info.filename[len(prefix):]
-            if not rel or rel.split("/", 1)[0] == "backups":
-                continue
-            plan.append((info, fs_utils.safe_join(self.path, os.path.join(self.path, rel))))
-
-        if clean_mods and any(info.filename[len(prefix):].startswith("mods/") for info, _ in plan):
-            mods_dir = os.path.join(self.path, "mods")
-            if os.path.isdir(mods_dir):
-                shutil.rmtree(mods_dir)
-
-        for info, dest in plan:
-            os.makedirs(os.path.dirname(dest), exist_ok=True)
-            with zf.open(info) as src, open(dest, "wb") as dst:
-                shutil.copyfileobj(src, dst)
-        return len(plan)
+        os.replace(tmp_target, target)
+        return name
 
     def delete_core_file(self, filename: str):
         fs_utils.delete(self.path, os.path.join(self.path, os.path.basename(filename)))

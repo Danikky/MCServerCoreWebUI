@@ -22,17 +22,25 @@
 
   <div class="card-mc">
     <div class="settings-grid">
-      {% for el in properties_data %}
+      {% for key, value, options in properties %}
       <div class="setting-item">
-        <div class="setting-key">{{ el[0] }}</div>
+        <div class="setting-key">{{ key }}</div>
+        {% if options %}
+        <select name="{{ key }}" form="settings-form" class="form-control" {% if not current_user.is_admin %}disabled{% endif %}>
+          {% for opt_value, label, selected in options %}
+          <option value="{{ opt_value }}" {% if selected %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        {% else %}
         <input
           type="text"
-          name="{{ el[0] }}"
+          name="{{ key }}"
           form="settings-form"
           class="form-control"
-          value="{{ el[1] }}"
-          placeholder="{{ el[1] }}"
+          value="{{ value }}"
+          placeholder="{{ value }}"
           {% if not current_user.is_admin %}readonly{% endif %}>
+        {% endif %}
       </div>
       {% endfor %}
     </div>

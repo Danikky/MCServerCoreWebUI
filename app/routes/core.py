@@ -3,6 +3,7 @@ import re
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 
+from app.client_pack import ClientPack
 from app.decorators import admin_required, with_server
 from app.extensions import db
 from app.models import Server
@@ -27,7 +28,9 @@ _MEMORY_RE = re.compile(r"^\d+[mMgG]$")
 def core_page(server_id):
     server = current_app.server_registry.get(server_id)
     row = Server.query.get_or_404(server_id)
-    return render_template("server_core.html", core_files=server.list_core_files(), row=row)
+    pack = ClientPack(row.slug)
+    return render_template("server_core.html", core_files=server.list_core_files(), row=row,
+                           pack=pack.meta, pack_ready=pack.ready)
 
 
 @bp.route("/upload", methods=["POST"])

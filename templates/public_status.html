@@ -96,8 +96,15 @@
         {% endif %}
       </div>
 
-      {% if s.contact or s.modpack_url %}
+      {% if s.contact or s.modpack_url or s.installer_url %}
       <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--glass-border);display:flex;flex-direction:column;gap:8px">
+        {% if s.installer_url %}
+          <a href="{{ s.installer_url }}" class="btn-mc btn-primary-mc w-full" style="justify-content:center"
+             title="Скачай и запусти — сборка сама установится в TLauncher">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Установщик сборки для TLauncher
+          </a>
+        {% endif %}
         {% if s.modpack_url %}
           <a href="{{ s.modpack_url }}" target="_blank" rel="noopener noreferrer" class="btn-mc btn-primary-mc w-full" style="justify-content:center">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>

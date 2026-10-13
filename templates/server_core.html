@@ -144,6 +144,145 @@
     </form>
   </div>
 
+  <div class="card-mc" style="margin-top:16px" id="clientpack">
+    <div class="card-header-mc">
+      <h3 class="card-title-mc">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        Автоустановщик сборки для TLauncher
+      </h3>
+      {% if pack_ready %}
+        <span class="badge-mc badge-green">готов</span>
+      {% else %}
+        <span class="badge-mc badge-gray">не готов</span>
+      {% endif %}
+    </div>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 14px">
+      Игрок скачивает один .bat-файл и запускает его: тот сам находит папку TLauncher, ставит загрузчик и нужную версию
+      Minecraft, создаёт в <code>versions</code> папку с названием сборки и кладёт туда моды, конфиги, шейдеры и текстуры.
+      Повторный запуск того же файла обновляет сборку — докачивается только изменившееся. Чтобы установщик заработал,
+      нужны название и установщик загрузчика; моды и overrides — по желанию.
+    </p>
+
+    <div class="settings-grid" style="margin-bottom:14px">
+      <div class="setting-item">
+        <div class="setting-key">1. Название сборки</div>
+        <form method="post" action="{{ url_for('clientpack.set_name', server_id=current_server.id) }}" style="display:flex;gap:8px">
+          <input type="text" name="name" class="form-control" maxlength="60" placeholder="MyServer Pack" value="{{ pack.name or '' }}" required>
+          <button class="btn-mc btn-primary-mc">Сохранить</button>
+        </form>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px">
+          Так версия будет называться в списке TLauncher. Смена названия создаст у игроков новую версию рядом со старой.
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-key">2. Установщик загрузчика (.jar)</div>
+        {% if pack.loader %}
+        <div class="flex-between" style="margin-bottom:8px">
+          <span style="font-family:var(--font-mono);font-size:13px;color:var(--text-secondary)">{{ pack.loader.id }} · Minecraft {{ pack.loader.minecraft }}</span>
+          <form method="post" action="{{ url_for('clientpack.delete_installer', server_id=current_server.id) }}" onsubmit="return confirm('Удалить установщик загрузчика?')">
+            <button class="btn-mc btn-danger-mc" style="padding:5px 10px;font-size:11px">Удалить</button>
+          </form>
+        </div>
+        {% endif %}
+        <input type="file" accept=".jar" class="form-control pack-upload" data-url="{{ url_for('clientpack.upload_installer', server_id=current_server.id) }}">
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px">
+          Файл <code>…-installer.jar</code> с сайта Forge или NeoForge — из него берутся версия Minecraft и загрузчика.
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-key">3. Моды (.jar)</div>
+        {% if pack.mods %}
+        <div class="flex-between" style="margin-bottom:8px">
+          <span style="font-family:var(--font-mono);font-size:13px;color:var(--text-secondary)">{{ pack.mods|length }} шт. · {{ (pack.mods.values()|sum(attribute='size') / 1048576)|round(1) }} МБ</span>
+          <form method="post" action="{{ url_for('clientpack.clear_mods', server_id=current_server.id) }}" onsubmit="return confirm('Удалить все моды сборки?')">
+            <button class="btn-mc btn-danger-mc" style="padding:5px 10px;font-size:11px">Удалить все</button>
+          </form>
+        </div>
+        {% endif %}
+        <input type="file" accept=".jar" multiple class="form-control pack-upload" data-url="{{ url_for('clientpack.upload_mod', server_id=current_server.id) }}">
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px">
+          Выдели все файлы из папки <code>mods</code> разом (Ctrl+A). Файл с тем же именем заменяется, остальные остаются.
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-key">4. Overrides (.zip)</div>
+        {% if pack.overrides %}
+        <div class="flex-between" style="margin-bottom:8px">
+          <span style="font-family:var(--font-mono);font-size:13px;color:var(--text-secondary)">{{ pack.overrides.files }} файлов · {{ (pack.overrides.size / 1048576)|round(1) }} МБ</span>
+          <form method="post" action="{{ url_for('clientpack.delete_overrides', server_id=current_server.id) }}" onsubmit="return confirm('Удалить overrides?')">
+            <button class="btn-mc btn-danger-mc" style="padding:5px 10px;font-size:11px">Удалить</button>
+          </form>
+        </div>
+        {% endif %}
+        <input type="file" accept=".zip" class="form-control pack-upload" data-url="{{ url_for('clientpack.upload_overrides', server_id=current_server.id) }}">
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px">
+          Архив с папками <code>config</code>, <code>resourcepacks</code>, <code>shaderpacks</code> и т.п. — в корне архива
+          или внутри папки <code>overrides</code>. Распаковывается в папку сборки у игрока поверх старых файлов;
+          <code>options.txt</code> игрока не затирается.
+        </div>
+      </div>
+    </div>
+
+    <div id="pack-upload-status" style="display:none;margin-bottom:14px">
+      <div class="resource-bar-label"><span id="pack-upload-text"></span><span id="pack-upload-pct"></span></div>
+      <div class="resource-bar-track"><div class="resource-bar-fill bar-green" id="pack-upload-fill" style="width:0%"></div></div>
+      <div id="pack-upload-errors" style="font-size:12px;color:var(--danger);margin-top:8px;white-space:pre-line"></div>
+    </div>
+
+    {% if pack_ready %}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+      <a href="{{ url_for('pack.installer_bat', server_id=current_server.id) }}" class="btn-mc btn-primary-mc">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Скачать установщик (.bat)
+      </a>
+      <input type="text" readonly class="form-control" id="pack-link" style="flex:1;min-width:220px" onclick="this.select()"
+             value="{{ url_for('pack.installer_bat', server_id=current_server.id) }}">
+    </div>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 14px">
+      Ссылка работает без входа в панель — её можно отправить игрокам. Скачивать .bat нужно по тому адресу,
+      по которому панель видна игрокам: он зашивается в файл.
+    </p>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('clientpack.set_status_button', server_id=current_server.id) }}" style="margin-bottom:14px">
+      <label class="switch-mc" style="font-size:13px;color:var(--text-secondary)">
+        <input type="checkbox" name="show_on_status" onchange="this.form.submit()" {% if pack.show_on_status %}checked{% endif %}>
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+        Показывать кнопку «Установщик сборки» на странице статуса
+      </label>
+      {% if pack.show_on_status and not pack_ready %}
+      <div style="font-size:10px;color:var(--text-muted);margin-top:4px">Кнопка появится, когда сборка будет готова (название + установщик загрузчика).</div>
+      {% elif pack.show_on_status and not row.public_visible %}
+      <div style="font-size:10px;color:var(--text-muted);margin-top:4px">Сервер сейчас скрыт со страницы статуса — включи его показ в «Публичной информации», иначе кнопку никто не увидит.</div>
+      {% endif %}
+    </form>
+
+    {% if pack.mods %}
+    <details class="online-details">
+      <summary class="flex-between">
+        <span style="color:var(--text-muted);font-size:13px">Список модов</span>
+        <span style="color:var(--text-secondary);font-size:13px">{{ pack.mods|length }} ▾</span>
+      </summary>
+      <div style="margin-top:10px">
+        {% for name, info in pack.mods|dictsort %}
+        <div class="file-item" style="cursor:default">
+          <span class="file-name">{{ name }}</span>
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-right:8px">{{ (info.size / 1048576)|round(2) }} МБ</span>
+          <form method="post" action="{{ url_for('clientpack.delete_mod', server_id=current_server.id, filename=name) }}">
+            <button class="btn-mc btn-danger-mc" style="padding:5px 10px;font-size:11px" title="Удалить мод">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+    </details>
+    {% endif %}
+  </div>
+
   <div class="card-mc" style="margin-top:16px">
     <div class="card-header-mc">
       <h3 class="card-title-mc">
@@ -184,6 +323,73 @@
     sw.addEventListener('change', function() {
       document.getElementById('modded-label').textContent = sw.checked ? 'Сборка модов' : 'Ванилла';
       document.getElementById('modpack-url-group').style.display = sw.checked ? '' : 'none';
+    });
+  })();
+
+  // Автоустановщик сборки: файлы уходят по одному на запрос (сотни модов —
+  // один огромный POST упёрся бы в лимит загрузки), с общей полосой прогресса.
+  (function() {
+    const link = document.getElementById('pack-link');
+    if (link) link.value = new URL(link.value, window.location.href).href;
+
+    const box = document.getElementById('pack-upload-status');
+    const text = document.getElementById('pack-upload-text');
+    const pct = document.getElementById('pack-upload-pct');
+    const fill = document.getElementById('pack-upload-fill');
+    const errorsEl = document.getElementById('pack-upload-errors');
+
+    function uploadAll(url, files) {
+      const errors = [];
+      let i = 0;
+      box.style.display = '';
+      errorsEl.textContent = '';
+      document.querySelectorAll('.pack-upload').forEach(el => el.disabled = true);
+
+      function finish() {
+        document.querySelectorAll('.pack-upload').forEach(el => { el.disabled = false; el.value = ''; });
+        if (errors.length) {
+          text.textContent = 'Загружено с ошибками — обнови страницу, чтобы увидеть результат';
+          errorsEl.textContent = errors.join('\n');
+          return;
+        }
+        window.location.hash = 'clientpack';
+        window.location.reload();
+      }
+
+      function next() {
+        if (i >= files.length) return finish();
+        const file = files[i++];
+        const label = (files.length > 1 ? '[' + i + '/' + files.length + '] ' : '') + file.name;
+        text.textContent = label;
+        const fd = new FormData();
+        fd.append('csrf_token', window.CSRF_TOKEN);
+        fd.append('file', file);
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url, true);
+        xhr.upload.onprogress = function(e) {
+          if (!e.lengthComputable) return;
+          const p = Math.round(e.loaded / e.total * 100);
+          fill.style.width = p + '%';
+          pct.textContent = p + '%';
+        };
+        xhr.onload = function() {
+          if (xhr.status !== 200) {
+            let message = xhr.status === 413 ? 'файл больше лимита загрузки' : 'ошибка ' + xhr.status;
+            try { message = JSON.parse(xhr.responseText).error || message; } catch (e) {}
+            errors.push(file.name + ': ' + message);
+          }
+          next();
+        };
+        xhr.onerror = function() { errors.push(file.name + ': сбой соединения'); next(); };
+        xhr.send(fd);
+      }
+      next();
+    }
+
+    document.querySelectorAll('.pack-upload').forEach(function(input) {
+      input.addEventListener('change', function() {
+        if (input.files.length) uploadAll(input.dataset.url, Array.from(input.files));
+      });
     });
   })();
 </script>

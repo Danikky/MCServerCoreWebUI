@@ -1,7 +1,8 @@
 import datetime as dt
 
-from flask import Blueprint, current_app, render_template
+from flask import Blueprint, current_app, render_template, url_for
 
+from app.client_pack import ClientPack
 from app.models import Server
 
 bp = Blueprint("public", __name__)
@@ -31,6 +32,7 @@ def status_page():
     servers = []
     for row in rows:
         manager = current_app.server_registry.get(row.id)
+        pack = ClientPack(row.slug)
         with manager.online_lock:
             online_players = list(manager.online)
         online_mode = manager.get_properties_bool("online-mode")
@@ -50,6 +52,10 @@ def status_page():
             # href на публичной странице, javascript:-ссылка сюда попасть не должна.
             "modpack_url": row.public_modpack_url
                 if row.public_modded and (row.public_modpack_url or "").startswith(("http://", "https://")) else None,
+            # Кнопка автоустановщика сборки для TLauncher — если сборка готова и
+            # admin включил кнопку на странице «Ядро» (см. app/client_pack.py).
+            "installer_url": url_for("pack.installer_bat", server_id=row.id)
+                if pack.ready and pack.meta["show_on_status"] else None,
             "status": manager.status,
             "online": len(online_players),
             "online_players": online_players,

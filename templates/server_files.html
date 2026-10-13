@@ -3,7 +3,7 @@
 
 {% block body %}
 <div class="container-mc">
-  <div class="flex-between" style="margin-bottom:20px">
+  <div class="page-head">
     <div class="page-title" style="margin-bottom:0">
       <h1>Файловый менеджер</h1>
       <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">/{{ subpath }}</span>
@@ -18,7 +18,7 @@
   </div>
 
   <!-- Breadcrumb -->
-  <div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;font-family:var(--font-mono);font-size:12px;color:var(--text-muted)">
+  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:16px;font-family:var(--font-mono);font-size:12px;color:var(--text-muted)">
     <a href="{{ url_for('files.server_files_to', server_id=current_server.id) }}" style="color:var(--text-secondary);text-decoration:none">{{ current_server.name }}</a>
     {% set parts = subpath.split('/') if subpath else [] %}
     {% for part in parts %}
@@ -86,13 +86,13 @@
               {% if is_editable %}
               <a href="{{ url_for('editor.edit_file', server_id=current_server.id, subpath=el_subpath) }}" class="btn-mc btn-ghost-mc" style="padding:5px 10px;font-size:11px">
                 <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                Открыть
+                <span class="btn-label">Открыть</span>
               </a>
               {% endif %}
               {% if not is_dir %}
               <a href="{{ url_for('files.download_file', server_id=current_server.id, subpath=el_subpath) }}" class="btn-mc btn-ghost-mc" style="padding:5px 10px;font-size:11px">
                 <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Скачать
+                <span class="btn-label">Скачать</span>
               </a>
               {% endif %}
               <button class="btn-mc btn-ghost-mc" name="command" value="rename" style="padding:5px 10px;font-size:11px">

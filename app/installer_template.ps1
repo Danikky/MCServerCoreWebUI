@@ -416,12 +416,12 @@ function Install-Loader($Manifest, [string]$GameDir, [string]$Tmp) {
 # манифеста: прошлый vs текущий), и удаляем то, что он убрал. Файлы, которые
 # на сервере не менялись, не трогаем — правки игрока в конфигах переживают
 # обновление сборки.
-function Sync-Overrides($Manifest, [string]$VersionDir, [string]$Tmp, $OldFiles) {
+function Sync-Overrides($Manifest, [string]$TargetDir, [string]$Tmp, $OldFiles) {
     $newFiles = ConvertTo-Hashtable $Manifest.overrides.files
     $keepIfExists = @('options.txt', 'optionsof.txt', 'optionsshaders.txt')
     $toWrite = @{}
     foreach ($rel in $newFiles.Keys) {
-        $dest = Join-Path $VersionDir $rel
+        $dest = Join-Path $TargetDir $rel
         $exists = Test-Path -LiteralPath $dest
         if ($exists -and ($keepIfExists -contains $rel.ToLower())) { continue }
         if (-not $exists -or $OldFiles[$rel] -ne $newFiles[$rel]) { $toWrite[$rel] = $true }
@@ -429,7 +429,7 @@ function Sync-Overrides($Manifest, [string]$VersionDir, [string]$Tmp, $OldFiles)
     $removed = 0
     foreach ($rel in $OldFiles.Keys) {
         if (-not $newFiles.ContainsKey($rel)) {
-            $dest = Join-Path $VersionDir $rel
+            $dest = Join-Path $TargetDir $rel
             if (Test-Path -LiteralPath $dest -PathType Leaf) { Remove-Item -LiteralPath $dest -Force -ErrorAction SilentlyContinue; $removed++ }
         }
     }
@@ -443,7 +443,7 @@ function Sync-Overrides($Manifest, [string]$VersionDir, [string]$Tmp, $OldFiles)
     Get-RemoteFile $Manifest.overrides.url $zipPath $Manifest.overrides.sha1 ([long]$Manifest.overrides.size)
 
     Add-Type -AssemblyName System.IO.Compression.FileSystem
-    $rootFull = [System.IO.Path]::GetFullPath($VersionDir).TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
+    $rootFull = [System.IO.Path]::GetFullPath($TargetDir).TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
     $written = 0
     $failed = 0
     $firstError = $null
@@ -452,7 +452,7 @@ function Sync-Overrides($Manifest, [string]$VersionDir, [string]$Tmp, $OldFiles)
         foreach ($entry in $zip.Entries) {
             $rel = $entry.FullName.Replace('\', '/')
             if (-not $toWrite.ContainsKey($rel)) { continue }
-            $dest = [System.IO.Path]::GetFullPath((Join-Path $VersionDir $rel))
+            $dest = [System.IO.Path]::GetFullPath((Join-Path $TargetDir $rel))
             if (-not $dest.StartsWith($rootFull, [System.StringComparison]::OrdinalIgnoreCase)) { continue }
             try {
                 [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($dest)) | Out-Null
@@ -501,13 +501,15 @@ function Install-Pack {
         Say '  в эту папку нельзя писать без прав администратора — перезапускаюсь с ними (подтверди запрос Windows)' Yellow
         Start-Process -FilePath $env:MCSC_SELF -ArgumentList ('"' + $gameDir + '"') -Verb RunAs
         Say '  установка продолжится в новом окне, это можно закрыть'
-        $script:HandedOver = $true
         return
     }
+    # Моды и overrides — прямо в папку игры (как у обычной установки модов в
+    # TLauncher); в versions\<имя>\ только JSON версии, чтобы сборка была в
+    # списке под своим названием.
     $versionsDir = Join-Path $gameDir 'versions'
     $versionDir = Join-Path $versionsDir $name
-    $modsDir = Join-Path $versionDir 'mods'
-    $statePath = Join-Path $versionDir '.mcsc-pack.json'
+    $modsDir = Join-Path $gameDir 'mods'
+    $statePath = Join-Path $gameDir '.mcsc-pack.json'
 
     # Место на диске: моды + архив overrides (он и качается, и распаковывается)
     # + запас на Minecraft с библиотеками загрузчика.
@@ -527,33 +529,52 @@ function Install-Pack {
 
     Install-Loader $manifest $gameDir $tmp
 
-    # Сборку переименовали на панели — переносим старую папку (миры, настройки,
-    # скриншоты) под новое имя, а не ставим рядом вторую копию на гигабайт.
-    $packPath = ([uri]$PackUrl).AbsolutePath
-    if (-not (Test-Path -LiteralPath $versionDir) -and (Test-Path -LiteralPath $versionsDir)) {
-        foreach ($dir in @(Get-ChildItem -LiteralPath $versionsDir -Directory -ErrorAction SilentlyContinue)) {
-            $old = Read-JsonFile (Join-Path $dir.FullName '.mcsc-pack.json')
-            if ($old -and $old.pack_url -and (([uri][string]$old.pack_url).AbsolutePath -eq $packPath)) {
-                Step "Сборка переименована: «$($dir.Name)» -> «$name», переношу миры и настройки"
-                Move-Item -LiteralPath $dir.FullName -Destination $versionDir
-                $oldJson = Join-Path $versionDir "$($dir.Name).json"
-                if (Test-Path -LiteralPath $oldJson) { Remove-Item -LiteralPath $oldJson -Force }
-                break
-            }
-        }
-    }
-
+    # Что ставили в прошлый раз (одна сборка на папку игры — моды-то общие).
     $state = Read-JsonFile $statePath
-    if ($state) {
+    $packPath = ([uri]$PackUrl).AbsolutePath
+    $samePack = $state -and $state.pack_url -and (([uri][string]$state.pack_url).AbsolutePath -eq $packPath)
+    if ($samePack) {
         Step "Сборка «$name» уже установлена — обновляю"
+    } elseif ($state) {
+        # Другая сборка (другой сервер): её моды и overrides убираются ниже
+        # так же, как убранные из сборки — по списку из состояния.
+        Step "Создаю версию «$name» (заменяю ранее установленную сборку «$($state.version_name)»)"
     } else {
         Step "Создаю версию «$name»"
     }
+
+    # Старая версия в списке TLauncher: сборку переименовали или поставили
+    # другую — убираем её JSON (только его: в папке могут быть чужие файлы).
+    if ($state -and $state.version_name -and ([string]$state.version_name -ne $name)) {
+        $oldVersionDir = Join-Path $versionsDir ([string]$state.version_name)
+        $oldJson = Join-Path $oldVersionDir "$($state.version_name).json"
+        if (Test-Path -LiteralPath $oldJson) { Remove-Item -LiteralPath $oldJson -Force }
+        if ((Test-Path -LiteralPath $oldVersionDir) -and -not @(Get-ChildItem -LiteralPath $oldVersionDir -Force).Count) {
+            Remove-Item -LiteralPath $oldVersionDir -Force
+        }
+    }
+
+    # Прошлая схема установщика держала моды в versions\<имя>\mods — убираем
+    # то, что ставили туда мы, чтобы не лежало мёртвым грузом.
+    $legacyState = Read-JsonFile (Join-Path $versionDir '.mcsc-pack.json')
+    if ($legacyState) {
+        foreach ($m in @($legacyState.mods)) {
+            if ($m) {
+                $legacyMod = Join-Path (Join-Path $versionDir 'mods') $m
+                if (Test-Path -LiteralPath $legacyMod) { Remove-Item -LiteralPath $legacyMod -Force }
+            }
+        }
+        Remove-Item -LiteralPath (Join-Path $versionDir '.mcsc-pack.json') -Force
+        $legacyMods = Join-Path $versionDir 'mods'
+        if ((Test-Path -LiteralPath $legacyMods) -and -not @(Get-ChildItem -LiteralPath $legacyMods -Force).Count) {
+            Remove-Item -LiteralPath $legacyMods -Force
+        }
+    }
+
+    [System.IO.Directory]::CreateDirectory($versionDir) | Out-Null
     [System.IO.Directory]::CreateDirectory($modsDir) | Out-Null
     [System.IO.File]::WriteAllText((Join-Path $versionDir "$name.json"), [string]$manifest.version_json, $Utf8NoBom)
 
-    # Что мы ставили в прошлый раз — чтобы при обновлении удалить моды,
-    # убранные из сборки, и не трогать те, что игрок добавил сам.
     $oldMods = @()
     $oldOverrideFiles = @{}
     if ($state) {
@@ -565,6 +586,28 @@ function Install-Pack {
     Get-ChildItem -LiteralPath $modsDir -Filter '*.part' -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
     $wanted = @{}
     foreach ($mod in $mods) { $wanted[[string]$mod.name] = $true }
+
+    # Папка mods общая для всего TLauncher: в ней часто лежат моды для других
+    # версий (Fabric и т.п.), и NeoForge/Forge падает, пытаясь их загрузить.
+    # При первой установке этой сборки предлагаем убрать их в отдельную папку —
+    # не удаляем, их можно вернуть руками.
+    if (-not $samePack) {
+        $known = @{}
+        foreach ($m in $oldMods) { if ($m) { $known[[string]$m] = $true } }
+        $foreign = @(Get-ChildItem -LiteralPath $modsDir -File -ErrorAction SilentlyContinue |
+            Where-Object { -not $wanted.ContainsKey($_.Name) -and -not $known.ContainsKey($_.Name) })
+        if ($foreign.Count) {
+            Say ("  в папке mods уже лежат моды не из этой сборки ({0}): {1}" -f $foreign.Count, (($foreign | Select-Object -First 6 | ForEach-Object { $_.Name }) -join ', ')) Yellow
+            Say '  с ними сборка, скорее всего, не запустится.' Yellow
+            $answer = Read-Host '  Перенести их в отдельную папку mods-backup? [Enter — да, N — оставить]'
+            if ($answer -notmatch '^\s*[nNнН]') {
+                $backup = Join-Path $gameDir ('mods-backup-' + (Get-Date -Format 'yyyy-MM-dd_HH-mm'))
+                [System.IO.Directory]::CreateDirectory($backup) | Out-Null
+                foreach ($f in $foreign) { Move-Item -LiteralPath $f.FullName -Destination (Join-Path $backup $f.Name) -Force }
+                Say "  перенесено в $backup"
+            }
+        }
+    }
     $removed = 0
     foreach ($old in $oldMods) {
         if ($old -and -not $wanted.ContainsKey([string]$old)) {
@@ -594,11 +637,18 @@ function Install-Pack {
 
     $newOverrideFiles = @{}
     if ($manifest.overrides) {
-        $newOverrideFiles = Sync-Overrides $manifest $versionDir $tmp $oldOverrideFiles
+        $newOverrideFiles = Sync-Overrides $manifest $gameDir $tmp $oldOverrideFiles
+    } elseif ($oldOverrideFiles.Count) {
+        # overrides убрали совсем — удаляем то, что ставили
+        foreach ($rel in $oldOverrideFiles.Keys) {
+            $dest = Join-Path $gameDir $rel
+            if (Test-Path -LiteralPath $dest -PathType Leaf) { Remove-Item -LiteralPath $dest -Force -ErrorAction SilentlyContinue }
+        }
     }
 
     $newState = @{
         pack_url = $PackUrl
+        version_name = $name
         loader = [string]$manifest.loader.id
         mods = @($mods | ForEach-Object { [string]$_.name })
         overrides_files = $newOverrideFiles

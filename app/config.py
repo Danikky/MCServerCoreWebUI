@@ -55,3 +55,8 @@ class Config:
     # Лимит на загрузку файлов (в первую очередь — ядро сервера через
     # /servers/<id>/core/upload). Werkzeug сам отдаёт 413, если превышено.
     MAX_CONTENT_LENGTH = int(os.environ.get("MCSC_MAX_UPLOAD_MB", "1024")) * 1024 * 1024
+
+    # Внешний адрес панели (https://panel.example.com) — его зашивает в
+    # .bat-установщик сборки. Не задан — берётся адрес, с которого открыли
+    # панель (см. app/routes/clientpack.public_base).
+    PUBLIC_URL = os.environ.get("MCSC_PUBLIC_URL", "").strip() or None

@@ -165,13 +165,18 @@
 
     <div class="settings-grid" style="margin-bottom:14px">
       <div class="setting-item">
-        <div class="setting-key">1. Название сборки</div>
-        <form method="post" action="{{ url_for('clientpack.set_name', server_id=current_server.id) }}" style="display:flex;gap:8px">
+        <div class="setting-key">1. Название и память</div>
+        <form method="post" action="{{ url_for('clientpack.set_name', server_id=current_server.id) }}" style="display:flex;flex-direction:column;gap:8px">
           <input type="text" name="name" class="form-control" maxlength="60" placeholder="MyServer Pack" value="{{ pack.name or '' }}" required>
-          <button class="btn-mc btn-primary-mc">Сохранить</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="number" name="ram_gb" class="form-control" min="1" max="64" placeholder="ГБ памяти" value="{{ pack.ram_gb or '' }}" style="flex:1">
+            <button class="btn-mc btn-primary-mc">Сохранить</button>
+          </div>
         </form>
         <div style="font-size:10px;color:var(--text-muted);margin-top:4px">
-          Так версия будет называться в списке TLauncher. Смена названия создаст у игроков новую версию рядом со старой.
+          Название — так версия будет называться в TLauncher; при переименовании установщик сам перенесёт у игроков
+          старую папку (с мирами) под новое имя. Память — сколько ГБ советовать выставить в TLauncher (для ~200 модов
+          обычно 6–8); установщик напомнит и предупредит, если на компьютере её мало.
         </div>
       </div>
 
@@ -185,9 +190,28 @@
           </form>
         </div>
         {% endif %}
+        {% if fat_status %}
+        <div class="flex-between" style="margin-bottom:8px;font-size:12px">
+          {% if fat_status == 'ready' %}
+            <span class="badge-mc badge-green" title="Игроки ставят загрузчик и Minecraft целиком с панели, без серверов Mojang/NeoForge">офлайн-установщик готов · {{ (pack.fat.size / 1048576)|round(0)|int }} МБ</span>
+          {% elif fat_status == 'building' %}
+            <span class="badge-mc badge-yellow">собираю офлайн-установщик… обнови страницу через пару минут</span>
+          {% elif fat_status == 'no-java' %}
+            <span class="badge-mc badge-gray" title="Игроки получат обычный установщик">нет Java на сервере — офлайн-установщик не собрать</span>
+          {% else %}
+            <span class="badge-mc badge-red" title="{{ pack.fat.error or 'сборку прервал перезапуск панели' }}">офлайн-установщик не собрался — игрокам уйдёт обычный</span>
+          {% endif %}
+          {% if fat_status in ('error', 'interrupted', 'no-java') %}
+          <form method="post" action="{{ url_for('clientpack.rebuild_offline', server_id=current_server.id) }}">
+            <button class="btn-mc btn-ghost-mc" style="padding:5px 10px;font-size:11px">Собрать заново</button>
+          </form>
+          {% endif %}
+        </div>
+        {% endif %}
         <input type="file" accept=".jar" class="form-control pack-upload" data-url="{{ url_for('clientpack.upload_installer', server_id=current_server.id) }}">
         <div style="font-size:10px;color:var(--text-muted);margin-top:4px">
           Файл <code>…-installer.jar</code> с сайта Forge или NeoForge — из него берутся версия Minecraft и загрузчика.
+          Панель сама соберёт из него офлайн-установщик (~170 МБ): с ним игрокам не нужен доступ к серверам Mojang.
         </div>
       </div>
 
@@ -217,11 +241,23 @@
           </form>
         </div>
         {% endif %}
+        {% if pack.overrides and pack.overrides.shaders_packed %}
+        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">
+          Шейдеры упакованы в .zip (так их читает Iris/Oculus и не упирается в длину путей Windows):
+          {{ pack.overrides.shaders_packed|join(', ') }}
+        </div>
+        {% endif %}
+        {% if pack.overrides and pack.overrides.long_paths %}
+        <div style="font-size:11px;color:var(--warn);margin-bottom:8px">
+          ⚠ {{ pack.overrides.long_paths }} файл(ов) с очень длинным путём — у части игроков Windows не даст их создать
+          (лимит 260 символов). Сократи имена папок или запакуй их в .zip.
+        </div>
+        {% endif %}
         <input type="file" accept=".zip" class="form-control pack-upload" data-url="{{ url_for('clientpack.upload_overrides', server_id=current_server.id) }}">
         <div style="font-size:10px;color:var(--text-muted);margin-top:4px">
-          Архив с папками <code>config</code>, <code>resourcepacks</code>, <code>shaderpacks</code> и т.п. — в корне архива
-          или внутри папки <code>overrides</code>. Распаковывается в папку сборки у игрока поверх старых файлов;
-          <code>options.txt</code> игрока не затирается.
+          Архив с папками <code>config</code>, <code>resourcepacks</code>, <code>shaderpacks</code> и т.п. — в корне,
+          внутри <code>overrides</code> или прямо архив сборки целиком. У игрока при обновлении меняются только файлы,
+          которые ты изменил; его правки в остальных конфигах и <code>options.txt</code> не затираются.
         </div>
       </div>
     </div>
@@ -239,11 +275,14 @@
         Скачать установщик (.bat)
       </a>
       <input type="text" readonly class="form-control" id="pack-link" style="flex:1;min-width:220px" onclick="this.select()"
-             value="{{ url_for('pack.installer_bat', server_id=current_server.id) }}">
+             value="{{ pack_link }}">
     </div>
+    {% for w in pack_warnings %}
+    <div class="alert-mc alert-mc-danger" style="font-size:12px;margin-bottom:10px">⚠ {{ w }}</div>
+    {% endfor %}
     <p style="font-size:11px;color:var(--text-muted);margin:0 0 14px">
-      Ссылка работает без входа в панель — её можно отправить игрокам. Скачивать .bat нужно по тому адресу,
-      по которому панель видна игрокам: он зашивается в файл.
+      Ссылка работает без входа в панель — её можно отправить игрокам. Адрес панели зашивается в .bat;
+      сам скрипт установки .bat каждый раз берёт с панели свежий, так что исправления доходят до игроков сами.
     </p>
     {% endif %}
 

@@ -1,6 +1,9 @@
+import ipaddress
 from io import BytesIO
+from urllib.parse import urlsplit
 
-from flask import Blueprint, abort, flash, jsonify, redirect, request, send_file, send_from_directory, url_for
+from flask import (Blueprint, Response, abort, current_app, flash, jsonify, redirect, request, send_file,
+                   send_from_directory, url_for)
 
 from app.client_pack import ClientPack, ClientPackError
 from app.decorators import admin_required, with_server
@@ -61,11 +64,26 @@ def upload_overrides(server_id):
 @admin_required
 @with_server
 def set_name(server_id):
+    pack = _pack(server_id)
     try:
-        name = _pack(server_id).set_name(request.form.get("name", ""))
-        flash(f"Название сборки: {name}")
+        name = pack.set_name(request.form.get("name", ""))
+        pack.set_ram(request.form.get("ram_gb", ""))
+        flash(f"Сохранено: {name}")
     except ClientPackError as e:
         flash(f"Ошибка: {e}")
+    return _back(server_id)
+
+
+@admin_bp.route("/offline/rebuild", methods=["POST"])
+@admin_required
+@with_server
+def rebuild_offline(server_id):
+    pack = _pack(server_id)
+    if pack.fat_status == "building":
+        flash("Офлайн-установщик уже собирается")
+    else:
+        pack.start_fat_build()
+        flash("Сборка офлайн-установщика запущена — это займёт пару минут")
     return _back(server_id)
 
 
@@ -127,27 +145,68 @@ def _ready_pack(server_id: int) -> ClientPack:
     return pack
 
 
-def _external(endpoint: str, **values) -> str:
-    """Абсолютный URL для игрока. За nginx (см. DEPLOY.md) Flask видит http —
-    настоящую схему берём из X-Forwarded-Proto. Заголовок можно подделать,
-    но он влияет только на ссылки в ответе самому же запросившему."""
+def public_base() -> str:
+    """
+    Адрес панели, который зашивается в .bat и манифест — по нему ходит
+    компьютер игрока. MCSC_PUBLIC_URL, если задан (надёжно: не зависит от
+    того, с какого адреса admin открыл панель). Иначе — адрес текущего
+    запроса; за nginx (см. DEPLOY.md) Flask видит http, настоящую схему берём
+    из X-Forwarded-Proto. Заголовок можно подделать, но он влияет только на
+    ссылки в ответе самому же запросившему.
+    """
+    configured = current_app.config.get("PUBLIC_URL")
+    if configured:
+        return configured.rstrip("/")
     scheme = request.headers.get("X-Forwarded-Proto", request.scheme).split(",")[0].strip()
     if scheme not in ("http", "https"):
         scheme = request.scheme
-    return f"{scheme}://{request.host}{url_for(endpoint, **values)}"
+    return f"{scheme}://{request.host}"
+
+
+def link_warnings(base: str) -> list[str]:
+    """Чем плох адрес, который уйдёт игрокам, — для предупреждения на странице «Ядро»."""
+    warnings = []
+    host = urlsplit(base).hostname or ""
+    try:
+        local = host == "localhost" or ipaddress.ip_address(host).is_private or ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        local = host.endswith(".local")
+    if local:
+        warnings.append(f"Ссылка ведёт на {host} — это адрес внутри твоей сети, у игроков он не откроется. "
+                        "Открой панель по внешнему адресу или задай MCSC_PUBLIC_URL в .env.")
+    if base.startswith("http://") and not local:
+        warnings.append("Панель открыта по http без шифрования: по дороге моды можно подменить, а мод — это "
+                        "исполняемый код у игрока. Настрой HTTPS (см. DEPLOY.md).")
+    return warnings
+
+
+def _external(endpoint: str, **values) -> str:
+    return public_base() + url_for(endpoint, **values)
+
+
+def _pack_url(server_id: int) -> str:
+    # Адрес сборки без хвоста — скрипт сам дописывает /manifest.json и т.п.
+    return _external("pack.manifest", server_id=server_id).rsplit("/", 1)[0]
 
 
 @public_bp.route("/install.bat")
 def installer_bat(server_id):
     pack = _ready_pack(server_id)
-    # Адрес сборки без хвоста — скрипт сам дописывает /manifest.json.
-    pack_url = _external("pack.manifest", server_id=server_id).rsplit("/", 1)[0]
     return send_file(
-        BytesIO(pack.render_installer_bat(pack_url)),
+        BytesIO(pack.render_installer_bat(_pack_url(server_id))),
         mimetype="application/x-bat",
         as_attachment=True,
         download_name=f"{pack.meta['name']} - установщик.bat",
     )
+
+
+@public_bp.route("/installer.ps1")
+def installer_ps1(server_id):
+    # Качается .bat-загрузчиком при каждом запуске — так исправления скрипта
+    # доходят до всех без перекачивания .bat.
+    pack = _ready_pack(server_id)
+    return Response(pack.render_installer_ps1(_pack_url(server_id)), mimetype="text/plain",
+                    headers={"Cache-Control": "no-store"})
 
 
 @public_bp.route("/manifest.json")
@@ -156,13 +215,16 @@ def manifest(server_id):
     meta = pack.meta
     overrides = None
     if meta["overrides"]:
-        overrides = dict(meta["overrides"], url=_external("pack.overrides", server_id=server_id))
+        overrides = dict(meta["overrides"], url=_external("pack.overrides", server_id=server_id),
+                         files=pack.overrides_files())
+    _, installer_info, offline = pack.installer_for_players()
     return jsonify(
-        format=1,
+        format=2,
         name=meta["name"],
         loader=meta["loader"],
+        ram_gb=meta["ram_gb"],
         version_json=pack.version_json_text(),
-        installer=dict(meta["installer"], url=_external("pack.installer", server_id=server_id)),
+        installer=dict(installer_info, offline=offline, url=_external("pack.installer", server_id=server_id)),
         mods=[
             dict(info, name=name, url=_external("pack.mod", server_id=server_id, filename=name))
             for name, info in sorted(meta["mods"].items())
@@ -173,8 +235,8 @@ def manifest(server_id):
 
 @public_bp.route("/installer.jar")
 def installer(server_id):
-    pack = _ready_pack(server_id)
-    return send_file(pack.installer_path, mimetype="application/java-archive")
+    path, _, _ = _ready_pack(server_id).installer_for_players()
+    return send_file(path, mimetype="application/java-archive")
 
 
 @public_bp.route("/overrides.zip")

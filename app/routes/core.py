@@ -4,6 +4,7 @@ import re
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 
 from app.client_pack import ClientPack
+from app.routes.clientpack import link_warnings, public_base
 from app.decorators import admin_required, with_server
 from app.extensions import db
 from app.models import Server
@@ -29,8 +30,11 @@ def core_page(server_id):
     server = current_app.server_registry.get(server_id)
     row = Server.query.get_or_404(server_id)
     pack = ClientPack(row.slug)
+    base = public_base()
     return render_template("server_core.html", core_files=server.list_core_files(), row=row,
-                           pack=pack.meta, pack_ready=pack.ready)
+                           pack=pack.meta, pack_ready=pack.ready, fat_status=pack.fat_status,
+                           pack_link=base + url_for("pack.installer_bat", server_id=server_id),
+                           pack_warnings=link_warnings(base))
 
 
 @bp.route("/upload", methods=["POST"])

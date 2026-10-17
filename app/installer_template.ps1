@@ -1,6 +1,8 @@
 #PSBEGIN
 # Автоустановщик сборки для TLauncher. Этот файл — шаблон: панель подставляет
-# адрес сборки и приклеивает сверху .bat-шапку (см. app/client_pack.py).
+# адрес сборки и отдаёт его как /pack/<id>/installer.ps1; .bat у игрока —
+# только маленький загрузчик этого скрипта (см. app/client_pack.py), так что
+# исправления здесь доходят до всех без перекачивания .bat.
 # Только синтаксис Windows PowerShell 5.1 (без ?:, ??, && из PowerShell 7).
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -11,35 +13,71 @@ $Utf8NoBom = New-Object System.Text.UTF8Encoding $false
 function Say([string]$Text, [string]$Color = 'Gray') { Write-Host $Text -ForegroundColor $Color }
 function Step([string]$Text) { Write-Host ''; Write-Host "== $Text" -ForegroundColor Cyan }
 
-function New-Client {
-    $c = New-Object System.Net.WebClient
-    $c.Encoding = [System.Text.Encoding]::UTF8
-    $c.Headers.Add('User-Agent', 'MCServerCore-Installer/1')
-    return $c
-}
-
 function Get-Sha1([string]$Path) {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA1).Hash.ToLower()
 }
 
-# Качает во временный .part, сверяет sha1 и только потом кладёт на место —
-# оборванная загрузка не оставит битый мод в папке.
-# Три попытки с паузой: на сотнях модов разовый сетевой сбой — обычное дело,
-# и обрывать из-за него всю установку незачем.
-function Get-RemoteFile([string]$Url, [string]$Dest, [string]$Sha1) {
+function Get-RemoteText([string]$Url) {
+    $c = New-Object System.Net.WebClient
+    $c.Encoding = [System.Text.Encoding]::UTF8
+    $c.Headers.Add('User-Agent', 'MCServerCore-Installer/2')
+    try { return $c.DownloadString($Url) } finally { $c.Dispose() }
+}
+
+# Потоковое скачивание во временный .part с таймаутами и (для больших
+# файлов) процентами в одной строке — иначе на сотнях мегабайт окно минутами
+# молчит и выглядит зависшим.
+function Save-Url([string]$Url, [string]$Part, [bool]$ShowProgress) {
+    $req = [System.Net.HttpWebRequest]::Create($Url)
+    $req.UserAgent = 'MCServerCore-Installer/2'
+    $req.Timeout = 30000
+    $req.ReadWriteTimeout = 60000
+    $resp = $req.GetResponse()
+    try {
+        $total = $resp.ContentLength
+        $in = $resp.GetResponseStream()
+        $out = [System.IO.File]::Create($Part)
+        try {
+            $buf = New-Object byte[] 262144
+            $done = 0
+            $shownAt = [DateTime]::MinValue
+            while (($n = $in.Read($buf, 0, $buf.Length)) -gt 0) {
+                $out.Write($buf, 0, $n)
+                $done += $n
+                if ($ShowProgress -and $total -gt 0 -and ((Get-Date) - $shownAt).TotalMilliseconds -gt 400) {
+                    Write-Host -NoNewline ("`r    {0:N1} из {1:N1} МБ ({2}%)   " -f ($done / 1MB), ($total / 1MB), [math]::Floor($done * 100 / $total))
+                    $shownAt = Get-Date
+                }
+            }
+            if ($ShowProgress -and $total -gt 0) { Write-Host ("`r    {0:N1} МБ — скачано          " -f ($total / 1MB)) }
+        } finally { $out.Dispose(); $in.Dispose() }
+    } finally { $resp.Close() }
+}
+
+# Три попытки с паузой: на сотнях модов разовый сетевой сбой — обычное дело.
+# Проверка sha1 до того, как файл ляжет на место, — оборванная загрузка не
+# оставит битый мод в папке.
+function Get-RemoteFile([string]$Url, [string]$Dest, [string]$Sha1, [long]$Size = 0) {
     $part = "$Dest.part"
+    $showProgress = ($Size -gt 5MB)
+    $hashMismatch = $false
     for ($attempt = 1; $attempt -le 3; $attempt++) {
         try {
-            $c = New-Client
-            try { $c.DownloadFile($Url, $part) } finally { $c.Dispose() }
+            Save-Url $Url $part $showProgress
             if ($Sha1 -and ((Get-Sha1 $part) -ne $Sha1)) {
-                throw "не совпала контрольная сумма"
+                $hashMismatch = $true
+                throw 'не совпала контрольная сумма'
             }
             Move-Item -LiteralPath $part -Destination $Dest -Force
             return
         } catch {
             if (Test-Path -LiteralPath $part) { Remove-Item -LiteralPath $part -Force -ErrorAction SilentlyContinue }
-            if ($attempt -eq 3) { throw "Не удалось скачать $Url : $($_.Exception.Message)" }
+            if ($attempt -eq 3) {
+                if ($hashMismatch) {
+                    throw "Файл на сервере не совпадает с описанием сборки — скорее всего, её обновили прямо во время установки. Запусти установщик ещё раз. ($Url)"
+                }
+                throw "Не удалось скачать $Url : $($_.Exception.Message)"
+            }
             Say "    сбой загрузки ($($_.Exception.Message)), повтор $($attempt + 1)/3..." Yellow
             Start-Sleep -Seconds (2 * $attempt)
         }
@@ -47,8 +85,8 @@ function Get-RemoteFile([string]$Url, [string]$Dest, [string]$Sha1) {
 }
 
 # Читает текстовый файл, даже если его держит открытым другая программа
-# (TLauncher не отпускает свой tlauncher-2.0.properties, пока запущен, —
-# обычный ReadAllLines на этом падал). Не получилось — $null, не исключение.
+# (TLauncher не отпускает свой tlauncher-2.0.properties, пока запущен).
+# Не получилось — $null, не исключение.
 function Read-SharedText([string]$Path) {
     try {
         $share = [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete
@@ -60,6 +98,17 @@ function Read-SharedText([string]$Path) {
     } catch {
         return $null
     }
+}
+
+function Read-JsonFile([string]$Path) {
+    if (-not (Test-Path -LiteralPath $Path)) { return $null }
+    try { return ([System.IO.File]::ReadAllText($Path) | ConvertFrom-Json) } catch { return $null }
+}
+
+function ConvertTo-Hashtable($Object) {
+    $h = @{}
+    if ($Object) { foreach ($p in $Object.PSObject.Properties) { $h[$p.Name] = [string]$p.Value } }
+    return $h
 }
 
 # ---- папка игры TLauncher ----------------------------------------------------
@@ -78,13 +127,19 @@ function Find-GameDir {
         if (Test-Path -LiteralPath $props) { $propsText = Read-SharedText $props }
         if ($propsText) {
             foreach ($line in ($propsText -split "`r?`n")) {
-                if ($line -match '^\s*minecraft\.gamedir\s*=\s*(.+)$') {
+                # Точное имя ключа не задокументировано — берём любой ключ с
+                # «gamedir» в названии (minecraft.gamedir и т.п.).
+                if ($line -match '^\s*[\w.\-]*gamedir[\w.\-]*\s*=\s*(.+)$') {
                     # .properties экранирует "\" и ":" -> C\:\\Games\\mc
                     $candidates += (($Matches[1].Trim() -replace '\\\\', '\') -replace '\\:', ':')
                 }
             }
         }
         $candidates += (Join-Path $env:APPDATA '.minecraft')
+    }
+    # Сначала папка, где уже есть versions (TLauncher в ней работал), потом любая существующая.
+    foreach ($c in $candidates) {
+        if ($c -and (Test-Path -LiteralPath (Join-Path $c 'versions') -PathType Container)) { return $c.TrimEnd('\', '/') }
     }
     foreach ($c in $candidates) {
         if ($c -and (Test-Path -LiteralPath $c -PathType Container)) { return $c.TrimEnd('\', '/') }
@@ -149,8 +204,16 @@ function Close-Minecraft {
         }
         Stop-ProcessList $found.Launcher
         $script:TLauncherClosed = $true
-        Say '  TLauncher закрыт, после установки запущу его снова'
     }
+    # Не закрылось (обычно — запущено от имени администратора, а у скрипта
+    # таких прав нет): просим закрыть руками, а не ставим сборку поверх.
+    for ($try = 1; $try -le 3; $try++) {
+        $left = Get-MinecraftProcesses
+        if (-not ($left.Game.Count + $left.Launcher.Count)) { break }
+        Say 'Не получилось закрыть TLauncher или игру (возможно, они запущены от имени администратора).' Yellow
+        [void](Read-Host 'Закрой их вручную и нажми Enter')
+    }
+    if ($script:TLauncherClosed) { Say '  TLauncher закрыт, после установки запущу его снова' }
 }
 
 function Start-TLauncher([string]$GameDir) {
@@ -195,13 +258,32 @@ function Test-IsAdmin {
 }
 
 # ---- Java --------------------------------------------------------------------
-# Установщик Forge/NeoForge — это .jar, ему нужна Java. Своя Java у игрока
-# стоит редко, зато TLauncher качает её сам в <папка игры>\runtime — берём
-# оттуда (или любую системную), самую новую из найденных.
+# Установщику Forge/NeoForge нужна Java не старее той, что требует сама версия
+# Minecraft (на старой он падает с невнятной ошибкой). Своя Java у игрока стоит
+# редко, зато TLauncher качает её сам в <папка игры>\runtime — ищем там и в
+# обычных местах установки.
+function Get-RequiredJava([string]$Minecraft) {
+    if ($Minecraft -notmatch '^1\.\d+') { return 21 }   # снапшоты вида 24w14a — новые версии
+    try {
+        $parts = $Minecraft.Split('.')
+        $minor = [int]$parts[1]
+        $patch = 0
+        if ($parts.Count -gt 2) { $patch = [int]$parts[2] }
+    } catch {
+        return 21
+    }
+    if ($minor -gt 20 -or ($minor -eq 20 -and $patch -ge 5)) { return 21 }
+    if ($minor -ge 18) { return 17 }
+    if ($minor -eq 17) { return 16 }
+    return 8
+}
+
 function Get-JavaMajor([string]$Exe) {
     $release = Join-Path (Split-Path (Split-Path $Exe -Parent) -Parent) 'release'
-    if (Test-Path -LiteralPath $release) {
-        foreach ($line in [System.IO.File]::ReadAllLines($release)) {
+    $text = $null
+    if (Test-Path -LiteralPath $release) { $text = Read-SharedText $release }
+    if ($text) {
+        foreach ($line in ($text -split "`r?`n")) {
             if ($line -match '^JAVA_VERSION="?(\d+)(?:\.(\d+))?') {
                 $major = [int]$Matches[1]
                 if ($major -eq 1 -and $Matches[2]) { $major = [int]$Matches[2] }   # "1.8.0_51" -> 8
@@ -212,7 +294,7 @@ function Get-JavaMajor([string]$Exe) {
     return 0
 }
 
-function Find-Java([string]$GameDir) {
+function Find-Java([string]$GameDir, [int]$MinMajor) {
     $exeName = 'java'
     if ($IsWin) { $exeName = 'java.exe' }
     $roots = @((Join-Path $GameDir 'runtime'))
@@ -235,13 +317,22 @@ function Find-Java([string]$GameDir) {
     }
     $onPath = Get-Command java -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($onPath) { $found += $onPath.Source }
+
     $best = $null
     $bestMajor = -1
+    $unknown = $null
+    $seen = @()
     foreach ($exe in $found) {
         $major = Get-JavaMajor $exe
-        if ($major -gt $bestMajor) { $best = $exe; $bestMajor = $major }
+        if ($major -eq 0) { if (-not $unknown) { $unknown = $exe }; continue }
+        $seen += $major
+        if ($major -ge $MinMajor -and $major -gt $bestMajor) { $best = $exe; $bestMajor = $major }
     }
-    return $best
+    if ($best) { return $best }
+    # Версию определить не удалось (нет файла release) — пробуем как последний шанс.
+    if ($unknown) { return $unknown }
+    $script:JavaSeen = ($seen | Sort-Object -Unique) -join ', '
+    return $null
 }
 
 function Format-Arg([string]$Value) {
@@ -249,28 +340,120 @@ function Format-Arg([string]$Value) {
     return $Value
 }
 
-# ---- overrides.zip -----------------------------------------------------------
-function Expand-Overrides([string]$ZipPath, [string]$TargetDir, [string]$Prefix) {
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    # Личные настройки игрока (управление, графика) не затираем при обновлении
-    # сборки — кладём их только если таких файлов ещё нет.
+# ---- загрузчик (Forge/NeoForge) -----------------------------------------------
+# Ставится один раз на папку игры; список успешно установленных — в
+# <папка игры>\.mcsc-loaders.json. Наличия versions\<id>\<id>.json мало:
+# установщик пишет его раньше, чем заканчивает патчить игру, и после сбоя
+# посередине «установленный» загрузчик не запустился бы.
+function Install-Loader($Manifest, [string]$GameDir, [string]$Tmp) {
+    $loaderId = [string]$Manifest.loader.id
+    $versionsDir = Join-Path $GameDir 'versions'
+    $listPath = Join-Path $GameDir '.mcsc-loaders.json'
+    $installed = @()
+    $saved = Read-JsonFile $listPath
+    if ($saved) { $installed = @($saved) }
+    if ($installed -contains $loaderId) {
+        Step "Загрузчик $loaderId уже установлен"
+        return
+    }
+
+    $mcVersion = [string]$Manifest.loader.minecraft
+    $minJava = Get-RequiredJava $mcVersion
+    $offline = [bool]$Manifest.installer.offline
+    if ($offline) {
+        Step "Устанавливаю $loaderId (всё нужное качается с сервера сборки)"
+    } else {
+        Step "Устанавливаю $loaderId (несколько минут, качает Minecraft и библиотеки)"
+    }
+    $java = Find-Java $GameDir $minJava
+    if (-not $java) {
+        $hint = ''
+        if ($script:JavaSeen) { $hint = " Найдена только Java $($script:JavaSeen) — для Minecraft $mcVersion нужна $minJava или новее." }
+        throw ("Не нашёл подходящую Java.$hint Запусти в TLauncher один раз обычный Minecraft $mcVersion " +
+            '(лаунчер сам скачает нужную Java), закрой игру и запусти этот установщик снова.')
+    }
+    Say "  Java: $java"
+    $installerJar = Join-Path $Tmp 'loader-installer.jar'
+    Get-RemoteFile $Manifest.installer.url $installerJar $Manifest.installer.sha1 ([long]$Manifest.installer.size)
+
+    # Установщик отказывается работать без launcher_profiles.json (файл
+    # официального лаунчера) и дописывает в него свой профиль. Своё
+    # содержимое игрока сохраняем и возвращаем как было.
+    $profiles = Join-Path $GameDir 'launcher_profiles.json'
+    $profilesBackup = $null
+    if (Test-Path -LiteralPath $profiles) {
+        $profilesBackup = [System.IO.File]::ReadAllBytes($profiles)
+    } else {
+        [System.IO.File]::WriteAllText($profiles, '{"profiles":{}}', $Utf8NoBom)
+    }
+    $loaderDir = Join-Path $versionsDir $loaderId
+    $hadLoaderDir = Test-Path -LiteralPath $loaderDir
+    try {
+        $argList = @('-jar', (Format-Arg $installerJar), '--installClient', (Format-Arg $GameDir))
+        if ($offline) { $argList += '--offline' }
+        $proc = Start-Process -FilePath $java -ArgumentList $argList -WorkingDirectory $Tmp -NoNewWindow -Wait -PassThru
+        $exitCode = $proc.ExitCode
+    } finally {
+        if ($profilesBackup) {
+            [System.IO.File]::WriteAllBytes($profiles, $profilesBackup)
+        } elseif (Test-Path -LiteralPath $profiles) {
+            Remove-Item -LiteralPath $profiles -Force
+        }
+    }
+    if ($exitCode -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $loaderDir "$loaderId.json"))) {
+        throw "Установщик загрузчика завершился с ошибкой (код $exitCode). Его журнал: $Tmp"
+    }
+    $installed += $loaderId
+    [System.IO.File]::WriteAllText($listPath, (ConvertTo-Json @($installed)), $Utf8NoBom)
+    # Версия сборки самодостаточна (в ней тот же JSON), а отдельная
+    # «neoforge-…» в списке TLauncher только путает: игроки запускают её и
+    # получают игру без модов. Убираем, если её создали мы, а не игрок раньше.
+    if (-not $hadLoaderDir) { Remove-Item -LiteralPath $loaderDir -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
+# ---- overrides ----------------------------------------------------------------
+# Пишем только то, что админ изменил с прошлой установки (сравнение хэшей из
+# манифеста: прошлый vs текущий), и удаляем то, что он убрал. Файлы, которые
+# на сервере не менялись, не трогаем — правки игрока в конфигах переживают
+# обновление сборки.
+function Sync-Overrides($Manifest, [string]$VersionDir, [string]$Tmp, $OldFiles) {
+    $newFiles = ConvertTo-Hashtable $Manifest.overrides.files
     $keepIfExists = @('options.txt', 'optionsof.txt', 'optionsshaders.txt')
-    $rootFull = [System.IO.Path]::GetFullPath($TargetDir).TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
+    $toWrite = @{}
+    foreach ($rel in $newFiles.Keys) {
+        $dest = Join-Path $VersionDir $rel
+        $exists = Test-Path -LiteralPath $dest
+        if ($exists -and ($keepIfExists -contains $rel.ToLower())) { continue }
+        if (-not $exists -or $OldFiles[$rel] -ne $newFiles[$rel]) { $toWrite[$rel] = $true }
+    }
+    $removed = 0
+    foreach ($rel in $OldFiles.Keys) {
+        if (-not $newFiles.ContainsKey($rel)) {
+            $dest = Join-Path $VersionDir $rel
+            if (Test-Path -LiteralPath $dest -PathType Leaf) { Remove-Item -LiteralPath $dest -Force -ErrorAction SilentlyContinue; $removed++ }
+        }
+    }
+    if (-not $toWrite.Count) {
+        Step 'Конфиги и ресурсы уже актуальны'
+        if ($removed) { Say "  удалено устаревших файлов: $removed" }
+        return $newFiles
+    }
+    Step ("Конфиги и ресурсы: обновить {0} файл(ов), скачиваю {1:N1} МБ" -f $toWrite.Count, ($Manifest.overrides.size / 1MB))
+    $zipPath = Join-Path $Tmp 'overrides.zip'
+    Get-RemoteFile $Manifest.overrides.url $zipPath $Manifest.overrides.sha1 ([long]$Manifest.overrides.size)
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $rootFull = [System.IO.Path]::GetFullPath($VersionDir).TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
     $written = 0
     $failed = 0
     $firstError = $null
-    $zip = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
+    $zip = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
     try {
         foreach ($entry in $zip.Entries) {
             $rel = $entry.FullName.Replace('\', '/')
-            if ($Prefix) {
-                if (-not $rel.StartsWith($Prefix)) { continue }
-                $rel = $rel.Substring($Prefix.Length)
-            }
-            if (-not $rel -or $rel.EndsWith('/')) { continue }
-            $dest = [System.IO.Path]::GetFullPath((Join-Path $TargetDir $rel))
+            if (-not $toWrite.ContainsKey($rel)) { continue }
+            $dest = [System.IO.Path]::GetFullPath((Join-Path $VersionDir $rel))
             if (-not $dest.StartsWith($rootFull, [System.StringComparison]::OrdinalIgnoreCase)) { continue }
-            if (($keepIfExists -contains $rel.ToLower()) -and (Test-Path -LiteralPath $dest)) { continue }
             try {
                 [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($dest)) | Out-Null
                 [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $dest, $true)
@@ -285,8 +468,9 @@ function Expand-Overrides([string]$ZipPath, [string]$TargetDir, [string]$Prefix)
     } finally {
         $zip.Dispose()
     }
-    Say "  распаковано файлов: $written"
+    Say "  обновлено файлов: $written, удалено устаревших: $removed"
     if ($failed) { Say "  не удалось распаковать: $failed (первый: $firstError)" Yellow }
+    return $newFiles
 }
 
 # ---- установка ---------------------------------------------------------------
@@ -297,14 +481,12 @@ function Install-Pack {
     } catch { }
 
     Step 'Получаю описание сборки'
-    $client = New-Client
-    try { $manifestText = $client.DownloadString("$PackUrl/manifest.json") } finally { $client.Dispose() }
-    $manifest = $manifestText | ConvertFrom-Json
+    $manifest = Get-RemoteText "$PackUrl/manifest.json" | ConvertFrom-Json
     $name = [string]$manifest.name
-    $loaderId = [string]$manifest.loader.id
+    $mods = @($manifest.mods)
     Say "  сборка: $name"
-    Say "  Minecraft $($manifest.loader.minecraft), загрузчик $loaderId"
-    Say "  модов: $(@($manifest.mods).Count)"
+    Say "  Minecraft $($manifest.loader.minecraft), загрузчик $($manifest.loader.id)"
+    Say "  модов: $($mods.Count)"
 
     if ($IsWin) {
         Step 'Закрываю TLauncher и игру'
@@ -319,55 +501,50 @@ function Install-Pack {
         Say '  в эту папку нельзя писать без прав администратора — перезапускаюсь с ними (подтверди запрос Windows)' Yellow
         Start-Process -FilePath $env:MCSC_SELF -ArgumentList ('"' + $gameDir + '"') -Verb RunAs
         Say '  установка продолжится в новом окне, это можно закрыть'
+        $script:HandedOver = $true
         return
     }
     $versionsDir = Join-Path $gameDir 'versions'
     $versionDir = Join-Path $versionsDir $name
     $modsDir = Join-Path $versionDir 'mods'
+    $statePath = Join-Path $versionDir '.mcsc-pack.json'
+
+    # Место на диске: моды + архив overrides (он и качается, и распаковывается)
+    # + запас на Minecraft с библиотеками загрузчика.
+    $need = 600MB
+    foreach ($mod in $mods) { $need += [long]$mod.size }
+    if ($manifest.overrides) { $need += 3 * [long]$manifest.overrides.size }
+    try {
+        $drive = New-Object System.IO.DriveInfo([System.IO.Path]::GetPathRoot([System.IO.Path]::GetFullPath($gameDir)))
+        if ($drive.AvailableFreeSpace -lt $need) {
+            throw ("Мало места на диске {0}: свободно {1:N1} ГБ, нужно около {2:N1} ГБ." -f $drive.Name, ($drive.AvailableFreeSpace / 1GB), ($need / 1GB))
+        }
+    } catch [System.ArgumentException] { }
+
     $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('mcsc-pack-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
     [System.IO.Directory]::CreateDirectory($tmp) | Out-Null
     $script:TempDir = $tmp
 
-    # Загрузчик ставится один раз: его версия (versions\<id>\<id>.json) и
-    # библиотеки остаются в папке игры и переживают обновления сборки.
-    $loaderJson = Join-Path (Join-Path $versionsDir $loaderId) "$loaderId.json"
-    if (Test-Path -LiteralPath $loaderJson) {
-        Step "Загрузчик $loaderId уже установлен"
-    } else {
-        Step "Устанавливаю $loaderId (несколько минут, качает Minecraft и библиотеки)"
-        $java = Find-Java $gameDir
-        if (-not $java) {
-            throw ('Не нашёл Java. Запусти в TLauncher один раз обычный Minecraft ' + $manifest.loader.minecraft +
-                ' (лаунчер сам скачает Java), закрой игру и запусти этот установщик снова.')
-        }
-        Say "  Java: $java"
-        $installerJar = Join-Path $tmp 'loader-installer.jar'
-        Get-RemoteFile $manifest.installer.url $installerJar $manifest.installer.sha1
-        # Установщик отказывается работать без launcher_profiles.json (файл
-        # официального лаунчера, у TLauncher его может не быть) — подкладываем
-        # пустой и убираем за собой.
-        $profiles = Join-Path $gameDir 'launcher_profiles.json'
-        $profilesCreated = $false
-        if (-not (Test-Path -LiteralPath $profiles)) {
-            [System.IO.File]::WriteAllText($profiles, '{"profiles":{}}', $Utf8NoBom)
-            $profilesCreated = $true
-        }
-        try {
-            $argList = @('-jar', (Format-Arg $installerJar), '--installClient', (Format-Arg $gameDir))
-            $proc = Start-Process -FilePath $java -ArgumentList $argList -WorkingDirectory $tmp -NoNewWindow -Wait -PassThru
-            $exitCode = $proc.ExitCode
-        } finally {
-            if ($profilesCreated -and (Test-Path -LiteralPath $profiles)) { Remove-Item -LiteralPath $profiles -Force }
-        }
-        if (-not (Test-Path -LiteralPath $loaderJson)) {
-            throw "Установщик загрузчика завершился с ошибкой (код $exitCode). Его журнал: $tmp"
+    Install-Loader $manifest $gameDir $tmp
+
+    # Сборку переименовали на панели — переносим старую папку (миры, настройки,
+    # скриншоты) под новое имя, а не ставим рядом вторую копию на гигабайт.
+    $packPath = ([uri]$PackUrl).AbsolutePath
+    if (-not (Test-Path -LiteralPath $versionDir) -and (Test-Path -LiteralPath $versionsDir)) {
+        foreach ($dir in @(Get-ChildItem -LiteralPath $versionsDir -Directory -ErrorAction SilentlyContinue)) {
+            $old = Read-JsonFile (Join-Path $dir.FullName '.mcsc-pack.json')
+            if ($old -and $old.pack_url -and (([uri][string]$old.pack_url).AbsolutePath -eq $packPath)) {
+                Step "Сборка переименована: «$($dir.Name)» -> «$name», переношу миры и настройки"
+                Move-Item -LiteralPath $dir.FullName -Destination $versionDir
+                $oldJson = Join-Path $versionDir "$($dir.Name).json"
+                if (Test-Path -LiteralPath $oldJson) { Remove-Item -LiteralPath $oldJson -Force }
+                break
+            }
         }
     }
 
-    # Повторный запуск того же файла = обновление: признак — наш файл состояния
-    # в папке версии (пишется в конце успешной установки).
-    $statePath = Join-Path $versionDir '.mcsc-pack.json'
-    if (Test-Path -LiteralPath $statePath) {
+    $state = Read-JsonFile $statePath
+    if ($state) {
         Step "Сборка «$name» уже установлена — обновляю"
     } else {
         Step "Создаю версию «$name»"
@@ -378,17 +555,14 @@ function Install-Pack {
     # Что мы ставили в прошлый раз — чтобы при обновлении удалить моды,
     # убранные из сборки, и не трогать те, что игрок добавил сам.
     $oldMods = @()
-    $oldOverrides = ''
-    if (Test-Path -LiteralPath $statePath) {
-        try {
-            $state = [System.IO.File]::ReadAllText($statePath) | ConvertFrom-Json
-            $oldMods = @($state.mods)
-            $oldOverrides = [string]$state.overrides_sha1
-        } catch { }
+    $oldOverrideFiles = @{}
+    if ($state) {
+        $oldMods = @($state.mods)
+        $oldOverrideFiles = ConvertTo-Hashtable $state.overrides_files
     }
 
     Step 'Моды'
-    $mods = @($manifest.mods)
+    Get-ChildItem -LiteralPath $modsDir -Filter '*.part' -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
     $wanted = @{}
     foreach ($mod in $mods) { $wanted[[string]$mod.name] = $true }
     $removed = 0
@@ -407,30 +581,45 @@ function Install-Pack {
             continue
         }
         Say ("  [{0}/{1}] {2}" -f $index, $mods.Count, $mod.name)
-        Get-RemoteFile $mod.url $dest $mod.sha1
+        Get-RemoteFile $mod.url $dest $mod.sha1 ([long]$mod.size)
         $downloaded++
     }
     Say "  скачано: $downloaded, уже было: $($mods.Count - $downloaded), удалено лишних: $removed"
-
-    $newOverrides = ''
-    if ($manifest.overrides) {
-        $newOverrides = [string]$manifest.overrides.sha1
-        if ($newOverrides -eq $oldOverrides) {
-            Step 'Конфиги и ресурсы не менялись'
-        } else {
-            Step ("Конфиги и ресурсы ({0} МБ)" -f [math]::Round($manifest.overrides.size / 1MB, 1))
-            $zipPath = Join-Path $tmp 'overrides.zip'
-            Get-RemoteFile $manifest.overrides.url $zipPath $newOverrides
-            Expand-Overrides $zipPath $versionDir ([string]$manifest.overrides.prefix)
-        }
+    $extra = @(Get-ChildItem -LiteralPath $modsDir -Filter '*.jar' -File -ErrorAction SilentlyContinue |
+        Where-Object { -not $wanted.ContainsKey($_.Name) } | ForEach-Object { $_.Name })
+    if ($extra.Count) {
+        Say ("  в папке есть моды не из сборки ({0}): {1}" -f $extra.Count, (($extra | Select-Object -First 8) -join ', ')) Yellow
+        Say '  если игра вылетает при запуске — сначала убери их.' Yellow
     }
 
-    $newState = @{ pack_url = $PackUrl; loader = $loaderId; mods = @($mods | ForEach-Object { [string]$_.name }); overrides_sha1 = $newOverrides }
+    $newOverrideFiles = @{}
+    if ($manifest.overrides) {
+        $newOverrideFiles = Sync-Overrides $manifest $versionDir $tmp $oldOverrideFiles
+    }
+
+    $newState = @{
+        pack_url = $PackUrl
+        loader = [string]$manifest.loader.id
+        mods = @($mods | ForEach-Object { [string]$_.name })
+        overrides_files = $newOverrideFiles
+    }
     [System.IO.File]::WriteAllText($statePath, ($newState | ConvertTo-Json -Depth 4), $Utf8NoBom)
 
     Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
     Write-Host ''
-    Say "Готово! Моды сборки актуальны. В TLauncher выбери версию «$name»." Green
+    Say "Готово! В TLauncher выбери версию «$name»." Green
+    if ($manifest.ram_gb) {
+        $ram = [int]$manifest.ram_gb
+        Say "Выдели игре память: в настройках TLauncher (шестерёнка) поставь не меньше $ram ГБ — иначе сборка будет вылетать или тормозить." Yellow
+        if ($IsWin) {
+            try {
+                $total = (Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory
+                if ($total -lt ($ram + 2) * 1GB) {
+                    Say ("На этом компьютере всего {0:N0} ГБ памяти — для сборки маловато, возможны вылеты." -f ($total / 1GB)) Yellow
+                }
+            } catch { }
+        }
+    }
     Say 'Чтобы обновить сборку, просто запусти этот файл ещё раз — скачается только то, что изменилось.'
     if ($IsWin -and -not (Get-MinecraftProcesses).Launcher.Count) { Start-TLauncher $gameDir }
 }

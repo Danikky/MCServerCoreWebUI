@@ -24,15 +24,42 @@ function Get-Sha1([string]$Path) {
 
 # Качает во временный .part, сверяет sha1 и только потом кладёт на место —
 # оборванная загрузка не оставит битый мод в папке.
+# Три попытки с паузой: на сотнях модов разовый сетевой сбой — обычное дело,
+# и обрывать из-за него всю установку незачем.
 function Get-RemoteFile([string]$Url, [string]$Dest, [string]$Sha1) {
     $part = "$Dest.part"
-    $c = New-Client
-    try { $c.DownloadFile($Url, $part) } finally { $c.Dispose() }
-    if ($Sha1 -and ((Get-Sha1 $part) -ne $Sha1)) {
-        Remove-Item -LiteralPath $part -Force
-        throw "Файл скачался с ошибкой (не совпала контрольная сумма): $Url"
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+        try {
+            $c = New-Client
+            try { $c.DownloadFile($Url, $part) } finally { $c.Dispose() }
+            if ($Sha1 -and ((Get-Sha1 $part) -ne $Sha1)) {
+                throw "не совпала контрольная сумма"
+            }
+            Move-Item -LiteralPath $part -Destination $Dest -Force
+            return
+        } catch {
+            if (Test-Path -LiteralPath $part) { Remove-Item -LiteralPath $part -Force -ErrorAction SilentlyContinue }
+            if ($attempt -eq 3) { throw "Не удалось скачать $Url : $($_.Exception.Message)" }
+            Say "    сбой загрузки ($($_.Exception.Message)), повтор $($attempt + 1)/3..." Yellow
+            Start-Sleep -Seconds (2 * $attempt)
+        }
     }
-    Move-Item -LiteralPath $part -Destination $Dest -Force
+}
+
+# Читает текстовый файл, даже если его держит открытым другая программа
+# (TLauncher не отпускает свой tlauncher-2.0.properties, пока запущен, —
+# обычный ReadAllLines на этом падал). Не получилось — $null, не исключение.
+function Read-SharedText([string]$Path) {
+    try {
+        $share = [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete
+        $fs = New-Object System.IO.FileStream($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, $share)
+        try {
+            $reader = New-Object System.IO.StreamReader($fs, [System.Text.Encoding]::UTF8)
+            return $reader.ReadToEnd()
+        } finally { $fs.Dispose() }
+    } catch {
+        return $null
+    }
 }
 
 # ---- папка игры TLauncher ----------------------------------------------------
@@ -47,8 +74,10 @@ function Find-GameDir {
     $candidates = @()
     if ($env:APPDATA) {
         $props = Join-Path (Join-Path $env:APPDATA '.tlauncher') 'tlauncher-2.0.properties'
-        if (Test-Path -LiteralPath $props) {
-            foreach ($line in [System.IO.File]::ReadAllLines($props)) {
+        $propsText = $null
+        if (Test-Path -LiteralPath $props) { $propsText = Read-SharedText $props }
+        if ($propsText) {
+            foreach ($line in ($propsText -split "`r?`n")) {
                 if ($line -match '^\s*minecraft\.gamedir\s*=\s*(.+)$') {
                     # .properties экранирует "\" и ":" -> C\:\\Games\\mc
                     $candidates += (($Matches[1].Trim() -replace '\\\\', '\') -replace '\\:', ':')
@@ -67,6 +96,102 @@ function Find-GameDir {
         if ($answer -and (Test-Path -LiteralPath $answer -PathType Container)) { return $answer }
         Say 'Такой папки нет, попробуй ещё раз.' Yellow
     }
+}
+
+# ---- TLauncher и игра ---------------------------------------------------------
+# Пока открыт TLauncher, он держит свои файлы и может перезаписать их при
+# выходе; пока запущена игра, заняты файлы модов. Поэтому перед установкой
+# закрываем оба, а TLauncher в конце запускаем снова.
+# 'game' — запущенный Minecraft (любой лаунчер), 'launcher' — сам TLauncher.
+function Get-ProcessKind([string]$Name, [string]$CommandLine) {
+    if ($CommandLine -match '--gameDir|--assetsDir|net\.minecraft\.|bootstraplauncher|cpw\.mods') { return 'game' }
+    if ($Name -eq 'TLauncher.exe' -or $CommandLine -match 'tlauncher') { return 'launcher' }
+    return ''
+}
+
+function Get-MinecraftProcesses {
+    $result = @{ Game = @(); Launcher = @() }
+    if (-not $IsWin) { return $result }
+    $procs = @(Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe' OR Name='TLauncher.exe'" -ErrorAction SilentlyContinue)
+    foreach ($p in $procs) {
+        $kind = Get-ProcessKind $p.Name ([string]$p.CommandLine)
+        if ($kind -eq 'game') { $result.Game += $p }
+        elseif ($kind -eq 'launcher') { $result.Launcher += $p }
+    }
+    return $result
+}
+
+function Stop-ProcessList($List) {
+    foreach ($p in $List) {
+        $proc = Get-Process -Id $p.ProcessId -ErrorAction SilentlyContinue
+        if ($proc) { [void]$proc.CloseMainWindow() }
+    }
+    for ($i = 0; $i -lt 10; $i++) {
+        $alive = @($List | Where-Object { Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue })
+        if (-not $alive.Count) { return }
+        Start-Sleep -Milliseconds 500
+    }
+    foreach ($p in $List) { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue }
+    Start-Sleep -Seconds 1
+}
+
+function Close-Minecraft {
+    $found = Get-MinecraftProcesses
+    if ($found.Game.Count) {
+        Say 'Сейчас запущен Minecraft. Сохранись и выйди из мира — игра будет закрыта.' Yellow
+        [void](Read-Host 'Нажми Enter, чтобы закрыть игру и продолжить')
+        Stop-ProcessList $found.Game
+        Say '  игра закрыта'
+    }
+    if ($found.Launcher.Count) {
+        foreach ($p in $found.Launcher) {
+            if ($p.Name -eq 'TLauncher.exe' -and $p.ExecutablePath) { $script:TLauncherExe = $p.ExecutablePath }
+        }
+        Stop-ProcessList $found.Launcher
+        $script:TLauncherClosed = $true
+        Say '  TLauncher закрыт, после установки запущу его снова'
+    }
+}
+
+function Start-TLauncher([string]$GameDir) {
+    $exe = $script:TLauncherExe
+    if (-not $exe) {
+        $candidates = @()
+        if ($GameDir) { $candidates += (Join-Path $GameDir 'TLauncher.exe') }
+        if ($env:APPDATA) { $candidates += (Join-Path (Join-Path $env:APPDATA '.minecraft') 'TLauncher.exe') }
+        foreach ($c in $candidates) {
+            if (Test-Path -LiteralPath $c) { $exe = $c; break }
+        }
+    }
+    if ($exe) {
+        Start-Process -FilePath $exe -ErrorAction SilentlyContinue
+        Say 'TLauncher запускается...'
+    } else {
+        Say 'Запусти TLauncher вручную.'
+    }
+}
+
+# Права администратора нужны, только если папка игры лежит там, куда
+# обычному пользователю писать нельзя (например, Program Files). Тогда
+# перезапускаемся с правами администратора и передаём уже найденный путь
+# аргументом: у администратора свой %APPDATA%, сам он папку не найдёт.
+function Test-NeedsElevation([string]$GameDir) {
+    $versions = Join-Path $GameDir 'versions'
+    try {
+        [System.IO.Directory]::CreateDirectory($versions) | Out-Null
+        $probe = Join-Path $versions ('.mcsc-write-test-' + [guid]::NewGuid().ToString('N').Substring(0, 6))
+        [System.IO.File]::WriteAllText($probe, 'ok')
+        Remove-Item -LiteralPath $probe -Force
+        return $false
+    } catch [System.UnauthorizedAccessException] {
+        return $true
+    }
+}
+
+function Test-IsAdmin {
+    if (-not $IsWin) { return $false }
+    $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+    return (New-Object System.Security.Principal.WindowsPrincipal($id)).IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
 # ---- Java --------------------------------------------------------------------
@@ -181,9 +306,21 @@ function Install-Pack {
     Say "  Minecraft $($manifest.loader.minecraft), загрузчик $loaderId"
     Say "  модов: $(@($manifest.mods).Count)"
 
+    if ($IsWin) {
+        Step 'Закрываю TLauncher и игру'
+        Close-Minecraft
+    }
+
     Step 'Ищу папку игры TLauncher'
     $gameDir = Find-GameDir
     Say "  $gameDir"
+    if (Test-NeedsElevation $gameDir) {
+        if ((Test-IsAdmin) -or -not $env:MCSC_SELF) { throw "Нет прав на запись в папку игры: $gameDir" }
+        Say '  в эту папку нельзя писать без прав администратора — перезапускаюсь с ними (подтверди запрос Windows)' Yellow
+        Start-Process -FilePath $env:MCSC_SELF -ArgumentList ('"' + $gameDir + '"') -Verb RunAs
+        Say '  установка продолжится в новом окне, это можно закрыть'
+        return
+    }
     $versionsDir = Join-Path $gameDir 'versions'
     $versionDir = Join-Path $versionsDir $name
     $modsDir = Join-Path $versionDir 'mods'
@@ -293,8 +430,9 @@ function Install-Pack {
 
     Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
     Write-Host ''
-    Say "Готово! Моды сборки актуальны. Открой TLauncher (если он был открыт — перезапусти) и выбери версию «$name»." Green
+    Say "Готово! Моды сборки актуальны. В TLauncher выбери версию «$name»." Green
     Say 'Чтобы обновить сборку, просто запусти этот файл ещё раз — скачается только то, что изменилось.'
+    if ($IsWin -and -not (Get-MinecraftProcesses).Launcher.Count) { Start-TLauncher $gameDir }
 }
 
 $logPath = Join-Path ([System.IO.Path]::GetTempPath()) 'mcsc-installer.log'
@@ -304,6 +442,7 @@ try {
 } catch {
     Write-Host ''
     Say "ОШИБКА: $($_.Exception.Message)" Red
+    if ($script:TLauncherClosed) { Start-TLauncher '' }
     Say "Журнал установки: $logPath" Yellow
     if ($script:TempDir) { Say "Временные файлы: $($script:TempDir)" Yellow }
     Say 'Пришли журнал администратору сервера.' Yellow
